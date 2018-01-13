@@ -6,7 +6,13 @@ option(BUILD_TESTING "compile with tests" ON)
 set (CMAKE_MODULE_PATH
      "${PROJECT_SOURCE_DIR}/cmake/modules")
 
-find_package(Qt5 REQUIRED COMPONENTS Gui Qml)
+find_package(Qt5 REQUIRED COMPONENTS Gui Qml )
+
+message("Qt Version: ${Qt5Core_VERSION} found.")
+if (Qt5Core_VERSION VERSION_LESS "5.10.0")
+    message(WARNING "Needs Qt >= 5.10.0")
+endif()
+
 find_package(PugiXML REQUIRED)
 
 set(CMAKE_AUTOMOC ON)
