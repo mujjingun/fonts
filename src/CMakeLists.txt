@@ -5,4 +5,4 @@ set(SOURCE_FILES
     backend.cpp
     )
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
-target_link_libraries(${PROJECT_NAME} Qt5::Qml Qt5::Gui)
+target_link_libraries(${PROJECT_NAME} Qt5::Qml Qt5::Gui Qt5::Quick)

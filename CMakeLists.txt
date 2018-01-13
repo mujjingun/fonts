@@ -6,7 +6,7 @@ option(BUILD_TESTING "compile with tests" ON)
 set (CMAKE_MODULE_PATH
      "${PROJECT_SOURCE_DIR}/cmake/modules")
 
-find_package(Qt5 REQUIRED COMPONENTS Gui Qml )
+find_package(Qt5 REQUIRED COMPONENTS Gui Qml Quick)
 
 message("Qt Version: ${Qt5Core_VERSION} found.")
 if (Qt5Core_VERSION VERSION_LESS "5.10.0")

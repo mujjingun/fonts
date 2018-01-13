@@ -61,6 +61,7 @@ ApplicationWindow {
     }
 
     Flow {
+        objectName: "consonants_view"
         id: consonants_view
         anchors {
             top: consonants_title.bottom;
@@ -126,10 +127,5 @@ ApplicationWindow {
         id: statusbar
         width: parent.width; height: 32
         color: activePalette.window
-    }
-
-    GridLayout {
-        objectName: "grid"
-        anchors.fill: parent
     }
 }

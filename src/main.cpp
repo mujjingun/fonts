@@ -19,14 +19,14 @@ int main(int argc, char *argv[])
     QQmlComponent window(&engine,
                          QUrl(QStringLiteral("qrc:/qml/main.qml")));
 
-    std::unique_ptr<QObject> object(window.create());
-
-    QObject *grid = object->findChild<QObject*>("grid");
+    std::unique_ptr<QObject> window_obj(window.create());
 
     QQmlComponent jamoview(&engine,
                            QUrl(QStringLiteral("qrc:/qml/jamoview.qml")));
-
-    qDebug() << grid << "\n";
+    std::unique_ptr<QQuickItem> jamoview_obj(
+        qobject_cast<QQuickItem*>(jamoview.beginCreate(engine.rootContext())));
+    jamoview_obj->setParentItem(window_obj->findChild<QQuickItem*>("consonants_view"));
+    jamoview.completeCreate();
 
     return app.exec();
 }
