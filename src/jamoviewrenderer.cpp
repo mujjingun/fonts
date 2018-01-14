@@ -19,38 +19,21 @@
 **
 ****************************************************************************/
 
+#include "jamoviewrenderer.hpp"
 
-#include <QGuiApplication>
-#include <QQmlApplicationEngine>
-#include <QQmlComponent>
-#include <QDebug>
-#include <QQuickItem>
-
-#include <memory>
-
-#include "jamoview.hpp"
-
-int main(int argc, char *argv[])
+QOpenGLFramebufferObject *
+JamoViewRenderer::createFramebufferObject(const QSize &size)
 {
-    qDebug() << "Qt Version: " << qVersion();
-    QGuiApplication app(argc, argv);
+    QOpenGLFramebufferObjectFormat format;
+    format.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
+    // optionally enable multisampling by doing format.setSamples(4);
+    return new QOpenGLFramebufferObject(size, format);
+}
 
-    // Register JamoView as a QML type
-    qmlRegisterType<JamoView>("hangul.jamoview", 1, 0, "JamoView");
-
-    // Make Window
-    QQmlApplicationEngine engine;
-    QQmlComponent window_comp(&engine, QUrl(QStringLiteral("qrc:/qml/main.qml")));
-    std::unique_ptr<QObject> window(window_comp.create());
-    if (window_comp.isError())
-        qDebug() << window_comp.errorString();
-
-    // Invoke QML function from C++
-    QVariant returnedValue;
-    for (int i = 0; i < 24; ++i) {
-        QMetaObject::invokeMethod(window.get(), "myQmlFunction",
-            Q_ARG(QVariant, "T"));
-    }
-
-    return app.exec();
+void JamoViewRenderer::render()
+{
+    QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
+    f->glClearColor(1, 0, 0, 1);
+    f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    update();
 }

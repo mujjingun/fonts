@@ -19,38 +19,37 @@
 **
 ****************************************************************************/
 
+#ifndef JAMOVIEW_HPP
+#define JAMOVIEW_HPP
 
-#include <QGuiApplication>
-#include <QQmlApplicationEngine>
-#include <QQmlComponent>
-#include <QDebug>
 #include <QQuickItem>
+#include <QString>
+#include <QQuickFramebufferObject>
 
-#include <memory>
+#include "jamoviewrenderer.hpp"
 
-#include "jamoview.hpp"
-
-int main(int argc, char *argv[])
+class JamoView : public QQuickFramebufferObject
 {
-    qDebug() << "Qt Version: " << qVersion();
-    QGuiApplication app(argc, argv);
+    Q_OBJECT
+    Q_PROPERTY(QString name
+                READ name
+                WRITE setName
+                NOTIFY nameChanged)
 
-    // Register JamoView as a QML type
-    qmlRegisterType<JamoView>("hangul.jamoview", 1, 0, "JamoView");
+public:
+    JamoView();
 
-    // Make Window
-    QQmlApplicationEngine engine;
-    QQmlComponent window_comp(&engine, QUrl(QStringLiteral("qrc:/qml/main.qml")));
-    std::unique_ptr<QObject> window(window_comp.create());
-    if (window_comp.isError())
-        qDebug() << window_comp.errorString();
+    QString name() const;
+    void setName(const QString &name);
 
-    // Invoke QML function from C++
-    QVariant returnedValue;
-    for (int i = 0; i < 24; ++i) {
-        QMetaObject::invokeMethod(window.get(), "myQmlFunction",
-            Q_ARG(QVariant, "T"));
-    }
+    QQuickFramebufferObject::Renderer *createRenderer() const override;
 
-    return app.exec();
-}
+signals:
+    void nameChanged() const;
+
+private:
+    QString m_name = "";
+    JamoViewRenderer *m_renderer = nullptr;
+};
+
+#endif

@@ -19,38 +19,30 @@
 **
 ****************************************************************************/
 
-
-#include <QGuiApplication>
-#include <QQmlApplicationEngine>
-#include <QQmlComponent>
-#include <QDebug>
-#include <QQuickItem>
-
-#include <memory>
-
 #include "jamoview.hpp"
 
-int main(int argc, char *argv[])
+#include <QDebug>
+
+JamoView::JamoView()
 {
-    qDebug() << "Qt Version: " << qVersion();
-    QGuiApplication app(argc, argv);
+}
 
-    // Register JamoView as a QML type
-    qmlRegisterType<JamoView>("hangul.jamoview", 1, 0, "JamoView");
+QQuickFramebufferObject::Renderer *
+JamoView::createRenderer() const
+{
+    return new JamoViewRenderer;
+}
 
-    // Make Window
-    QQmlApplicationEngine engine;
-    QQmlComponent window_comp(&engine, QUrl(QStringLiteral("qrc:/qml/main.qml")));
-    std::unique_ptr<QObject> window(window_comp.create());
-    if (window_comp.isError())
-        qDebug() << window_comp.errorString();
+QString JamoView::name() const
+{
+    return m_name;
+}
 
-    // Invoke QML function from C++
-    QVariant returnedValue;
-    for (int i = 0; i < 24; ++i) {
-        QMetaObject::invokeMethod(window.get(), "myQmlFunction",
-            Q_ARG(QVariant, "T"));
-    }
+void JamoView::setName(const QString &name)
+{
+    if (name == m_name)
+        return;
 
-    return app.exec();
+    m_name = name;
+    emit nameChanged();
 }
