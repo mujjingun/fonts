@@ -22,8 +22,8 @@
 import QtQuick 2.7
 import QtQuick.Window 2.2
 import QtQuick.Controls 2.3
-import QtQuick.Layouts 1.0
-import hangul.jamoview 1.0
+import QtQuick.Layouts 1.3
+import QtQuick.Shapes 1.0
 
 ApplicationWindow {
     id: window
@@ -69,94 +69,118 @@ ApplicationWindow {
         }
     }
 
-    Text {
-        id: consonants_title
-        text: "Consonants"
+    Flickable {
+        id: flicker
         anchors {
             top: menu.bottom;
+            bottom: statusbar.top;
             left: parent.left;
+            right: parent.right;
             margins: 4
         }
-    }
+        contentWidth: width
+        contentHeight: contentItem.childrenRect.height
+        ScrollBar.vertical: ScrollBar {}
+        boundsBehavior: Flickable.StopAtBounds
+        focus: true
+        clip: true
 
-    function myQmlFunction(msg) {
-        jamoModel.append({"name": msg, "number": "test"});
-    }
-
-    ListModel {
-        id: jamoModel
-        ListElement {
-            name: "ㄱ"
-        }
-        ListElement {
-            name: "ㄴ"
-        }
-        ListElement {
-            name: "ㄷ"
-        }
-    }
-
-    Rectangle {
-        id: consonants_view
-        height: 110
-        anchors {
-            top: consonants_title.bottom;
-            left: parent.left; right: parent.right
-            margins: 4
-        }
-        MouseArea {
-            anchors.fill: parent
-            onWheel: {
-                listview.flick(wheel.angleDelta.y * 7, 0);
+        Text {
+            id: consonants_title
+            text: "Consonants"
+            anchors {
+                top: parent.top;
+                left: parent.left;
+                margins: 4
             }
         }
+
+        Rectangle {
+            id: consonants_view
+            height: flow.height
+            anchors {
+                top: consonants_title.bottom;
+                left: parent.left; right: parent.right
+                margins: 4
+            }
+            Flow {
+                id: flow
+                anchors.centerIn: parent
+                width: parent.width
+                spacing: 10
+
+                Repeater {
+                    id: jamorepeat
+                    model: jamoModel
+
+                    delegate: Rectangle {
+                        width: 100
+                        height: 100
+
+                        Shape {
+                            anchors.fill: parent
+                            Component.onCompleted: {
+                                var pstr = "";
+                                for (var i = 0; i < path.length; ++i) {
+                                    var seg = path[i];
+                                    pstr += seg["name"] + '{' +
+                                            'x: ' + seg["x"] + ';' +
+                                            'y: ' + seg["y"] + '}';
+                                }
+                                var code =
+                                    'import QtQuick 2.7;' +
+                                    'import QtQuick.Shapes 1.0;' +
+                                    'ShapePath {' +
+                                        'strokeWidth: 2;' +
+                                        'strokeColor: "red";' +
+                                        'strokeStyle: ShapePath.SolidLine;' +
+                                        'startX: ' + start.x + '; startY: ' + start.y + ';' +
+                                        pstr +
+                                    '}';
+                                //console.log(code);
+                                var pl = Qt.createQmlObject(
+                                    code,
+                                    window,
+                                    'dynamicsnippet1'
+                                );
+                                this.data.push(pl)
+                            }
+                        }
+
+                        Rectangle {
+                            anchors.fill: parent
+                            border.color: "black"
+                            border.width: 1
+                            color: "transparent"
+                        }
+
+                        Text {
+                            text: name
+                        }
+                    }
+                } // Repeater
+            } // Flow
+        } // Rectangle
+
+        Text {
+            id: vowels_title
+            text: "Vowels"
+            anchors {
+                top: consonants_view.bottom
+                left: parent.left
+                margins: 4
+            }
+        }
+
         ListView {
-            id: listview
-            anchors.fill: parent
-            orientation: Qt.Horizontal
-            ScrollBar.horizontal: ScrollBar {}
-            spacing: 10
-            model: jamoModel
-            delegate: Rectangle {
-                width: 100
-                height: 100
-                JamoView {
-                    anchors.fill: parent
-                }
-                Rectangle {
-                    anchors.fill: parent
-                    border.color: "black"
-                    border.width: 1
-                    color: "transparent"
-                }
-                Text {
-                    text: name
-                }
+            id: vowels_view
+            anchors {
+                top: vowels_title.bottom;
+                left: parent.left; right: parent.right
+                margins: 4
             }
-            boundsBehavior: Flickable.StopAtBounds
-            highlight: Rectangle { color: "lightsteelblue"; }
-            focus: true
+            spacing: 10
         }
-    }
-
-    Text {
-        id: vowels_title
-        text: "Vowels"
-        anchors {
-            top: consonants_view.bottom
-            left: parent.left
-            margins: 4
-        }
-    }
-
-    ListView {
-        id: vowels_view
-        anchors {
-            top: vowels_title.bottom;
-            left: parent.left; right: parent.right
-            margins: 4
-        }
-        spacing: 10
     }
 
     footer: Rectangle {

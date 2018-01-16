@@ -25,32 +25,37 @@
 #include <QQmlComponent>
 #include <QDebug>
 #include <QQuickItem>
+#include <QQmlContext>
 
 #include <memory>
 
-#include "jamoview.hpp"
+#include "jamomodel.hpp"
 
 int main(int argc, char *argv[])
 {
     qDebug() << "Qt Version: " << qVersion();
     QGuiApplication app(argc, argv);
 
-    // Register JamoView as a QML type
-    qmlRegisterType<JamoView>("hangul.jamoview", 1, 0, "JamoView");
+    JamoModel model;
+    QList<QVariant> path;
+    path.append(QVariantMap{{"name", "PathLine"}, {"x", 50}, {"y", 50}});
+    path.append(QVariantMap{{"name", "PathLine"}, {"x", 60}, {"y", 50}});
+    path.append(QVariantMap{{"name", "PathLine"}, {"x", 60}, {"y", 60}});
+    path.append(QVariantMap{{"name", "PathLine"}, {"x", 50}, {"y", 50}});
+    model.addJamo(Jamo{"A", QPoint(0, 0), path});
+    model.addJamo(Jamo{"B"});
+    model.addJamo(Jamo{"C", QPoint(30, 0), path});
+    model.addJamo(Jamo{"D"});
 
     // Make Window
     QQmlApplicationEngine engine;
+    QQmlContext *context = engine.rootContext();
+    context->setContextProperty("jamoModel", &model);
+
     QQmlComponent window_comp(&engine, QUrl(QStringLiteral("qrc:/qml/main.qml")));
     std::unique_ptr<QObject> window(window_comp.create());
     if (window_comp.isError())
         qDebug() << window_comp.errorString();
-
-    // Invoke QML function from C++
-    QVariant returnedValue;
-    for (int i = 0; i < 24; ++i) {
-        QMetaObject::invokeMethod(window.get(), "myQmlFunction",
-            Q_ARG(QVariant, "T"));
-    }
 
     return app.exec();
 }
