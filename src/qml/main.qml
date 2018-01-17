@@ -23,7 +23,7 @@ import QtQuick 2.7
 import QtQuick.Window 2.2
 import QtQuick.Controls 2.3
 import QtQuick.Layouts 1.3
-import QtQuick.Shapes 1.0
+import QtQuick.Dialogs 1.0
 
 ApplicationWindow {
     id: window
@@ -34,16 +34,40 @@ ApplicationWindow {
 
     SystemPalette { id: activePalette }
 
+    signal fileOpenSignal(var filename)
+    signal fileLoaded()
+
+    onFileLoaded: {
+        busy.running = false;
+    }
+
+    FileDialog {
+        id: fileDialog
+        title: "Please choose a file"
+        folder: shortcuts.home
+        onAccepted: {
+            window.fileOpenSignal(fileDialog.fileUrl);
+            busy.running = true;
+        }
+    }
+
+    BusyIndicator {
+        id: busy
+        anchors.centerIn: parent
+        running: false
+
+    }
+
     menuBar: MenuBar {
         id: menu
         Menu {
             title: qsTr("&File")
             Action {
                 text: qsTr("&New...")
-                onTriggered: window.qmlSignal("hello world!")
             }
             Action {
                 text: qsTr("&Open...")
+                onTriggered: fileDialog.open()
             }
             Action {
                 text: qsTr("&Save")
@@ -113,51 +137,7 @@ ApplicationWindow {
                     id: jamorepeat
                     model: jamoModel
 
-                    delegate: Rectangle {
-                        width: 100
-                        height: 100
-
-                        Shape {
-                            anchors.fill: parent
-                            Component.onCompleted: {
-                                var pstr = "";
-                                for (var i = 0; i < path.length; ++i) {
-                                    var seg = path[i];
-                                    pstr += seg["name"] + '{' +
-                                            'x: ' + seg["x"] + ';' +
-                                            'y: ' + seg["y"] + '}';
-                                }
-                                var code =
-                                    'import QtQuick 2.7;' +
-                                    'import QtQuick.Shapes 1.0;' +
-                                    'ShapePath {' +
-                                        'strokeWidth: 2;' +
-                                        'strokeColor: "red";' +
-                                        'strokeStyle: ShapePath.SolidLine;' +
-                                        'startX: ' + start.x + '; startY: ' + start.y + ';' +
-                                        pstr +
-                                    '}';
-                                //console.log(code);
-                                var pl = Qt.createQmlObject(
-                                    code,
-                                    window,
-                                    'dynamicsnippet1'
-                                );
-                                this.data.push(pl)
-                            }
-                        }
-
-                        Rectangle {
-                            anchors.fill: parent
-                            border.color: "black"
-                            border.width: 1
-                            color: "transparent"
-                        }
-
-                        Text {
-                            text: name
-                        }
-                    }
+                    delegate: JamoDelegate {}
                 } // Repeater
             } // Flow
         } // Rectangle

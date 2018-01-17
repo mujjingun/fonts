@@ -30,6 +30,7 @@
 #include <memory>
 
 #include "jamomodel.hpp"
+#include "menuhandler.hpp"
 
 int main(int argc, char *argv[])
 {
@@ -37,15 +38,7 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
 
     JamoModel model;
-    QList<QVariant> path;
-    path.append(QVariantMap{{"name", "PathLine"}, {"x", 50}, {"y", 50}});
-    path.append(QVariantMap{{"name", "PathLine"}, {"x", 60}, {"y", 50}});
-    path.append(QVariantMap{{"name", "PathLine"}, {"x", 60}, {"y", 60}});
-    path.append(QVariantMap{{"name", "PathLine"}, {"x", 50}, {"y", 50}});
-    model.addJamo(Jamo{"A", QPoint(0, 0), path});
-    model.addJamo(Jamo{"B"});
-    model.addJamo(Jamo{"C", QPoint(30, 0), path});
-    model.addJamo(Jamo{"D"});
+    model.addJamo(Jamo{"Test"});
 
     // Make Window
     QQmlApplicationEngine engine;
@@ -56,6 +49,10 @@ int main(int argc, char *argv[])
     std::unique_ptr<QObject> window(window_comp.create());
     if (window_comp.isError())
         qDebug() << window_comp.errorString();
+
+    MenuHandler menuhandler(window.get(), &model);
+    QObject::connect(window.get(), SIGNAL(fileOpenSignal(QVariant)),
+                     &menuhandler, SLOT(fileOpenClicked(QVariant)));
 
     return app.exec();
 }

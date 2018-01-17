@@ -9,12 +9,10 @@
 
 struct Jamo
 {
+    void addPath(QPoint start, QList<QVariantMap> points);
+
     QString name;
-
-    QPoint start;
-    QList<QVariant> path;
-
-    void updateDisplayPath();
+    QVariantList paths = {};
 };
 
 class JamoModel : public QAbstractListModel
@@ -23,8 +21,7 @@ class JamoModel : public QAbstractListModel
 public:
     enum JamoModelRoles {
         NameRole = Qt::UserRole + 1,
-        StartRole,
-        PathRole
+        PathsRole
     };
 
     JamoModel(QObject *parent = nullptr);
