@@ -46,7 +46,7 @@ static const char fragment_shader_source[] =
 R"GLSL(
 
 void main() {
-    gl_FragColor = vec4(0.5, 1, 1, 1);
+    gl_FragColor = vec4(0, 0, 0, 1);
 }
 
 )GLSL";
@@ -66,7 +66,7 @@ void JamoViewRenderer::render()
 
     m_program->bind();
 
-    f->glClearColor(0, 0, 0, 1);
+    f->glClearColor(1, 1, 1, 1);
     f->glEnable(GL_STENCIL_TEST);
     f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
@@ -83,7 +83,6 @@ void JamoViewRenderer::render()
     m_rectVAO.bind();
     f->glStencilFunc(GL_NOTEQUAL, 0, 0xFF);
     f->glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-    f->glStencilMask(0x00);
 
     f->glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
@@ -104,7 +103,7 @@ void JamoViewRenderer::synchronize(QQuickFramebufferObject* item)
     for (auto const &path : m_glyph->glyph().paths) {
         intervals << QPair<int, int>(values.count(), path.segments().size() + 1);
         values << QVector2D(path.start().x, path.start().y) / 1000.0;
-        for (auto const& seg : m_glyph->glyph().paths[0].segments()) {
+        for (auto const& seg : path.segments()) {
             auto p = seg.get<fontutils::Line>().p;
             values << QVector2D(p.x, p.y) / 1000.0;
         }

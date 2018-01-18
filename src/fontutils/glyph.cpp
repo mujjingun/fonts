@@ -68,9 +68,10 @@ Glyph Glyph::from_charstring(std::string chname, std::string charstring)
                 }
                 else if (sarg == "rlineto") {
                     if (g.paths.empty()) g.paths.push_back(Path(pos));
+
                     for (auto i = 0u; i < stack.size(); i += 2) {
-                        Point p{pos.x + stack[i], pos.y + stack[i + 1]};
-                        g.paths.back().add(Line{p});
+                        pos.x += stack[i], pos.y += stack[i + 1];
+                        g.paths.back().add(Line{pos});
                     }
                     stack.clear();
                 }
@@ -80,13 +81,13 @@ Glyph Glyph::from_charstring(std::string chname, std::string charstring)
                     // alternating horizontal/vertical lines
                     for (auto i = 0u; i < stack.size(); i += 2) {
                         // horizontal line
-                        Point ph{pos.x + stack[i], pos.y};
-                        g.paths.back().add(Line{ph});
+                        pos.x += stack[i];
+                        g.paths.back().add(Line{pos});
 
                         // vertical line
                         if (i + 1 < stack.size()) {
-                            Point pv{pos.x, pos.y + stack[i + 1]};
-                            g.paths.back().add(Line{pv});
+                            pos.y += stack[i + 1];
+                            g.paths.back().add(Line{pos});
                         }
                     }
                     stack.clear();
@@ -97,13 +98,13 @@ Glyph Glyph::from_charstring(std::string chname, std::string charstring)
                     // alternating vertical/horizontal lines
                     for (auto i = 0u; i < stack.size(); i += 2) {
                         // vertical line
-                        Point pv{pos.x, pos.y + stack[i]};
-                        g.paths.back().add(Line{pv});
+                        pos.y += stack[i];
+                        g.paths.back().add(Line{pos});
 
                         // horizontal line
                         if (i + 1 < stack.size()) {
-                            Point ph{pos.x  + stack[i + 1], pos.y};
-                            g.paths.back().add(Line{ph});
+                            pos.x += stack[i + 1];
+                            g.paths.back().add(Line{pos});
                         }
                     }
                     stack.clear();

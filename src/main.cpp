@@ -42,16 +42,21 @@ int main(int argc, char *argv[])
     model.addJamo(Jamo{"Test", new Glyph(fontutils::Glyph::from_charstring("Test",
 R"(-120 50 900 50 hstem
 100 50 700 50 vstem
+
 100 -120 rmoveto
 800 1000 -800 hlineto
+
 400 -459 rmoveto
 -318 409 rlineto
 636 hlineto
+
 -286 -450 rmoveto
 318 409 rlineto
 -818 vlineto
+
 -668 -41 rmoveto
 318 409 318 -409 rlineto
+
 -668 859 rmoveto
 318 -409 -318 -409 rlineto
 endchar")"), &model)});
