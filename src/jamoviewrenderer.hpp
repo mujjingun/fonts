@@ -28,8 +28,12 @@
 #include <QQuickWindow>
 #include <QOpenGLFramebufferObject>
 #include <QQuickFramebufferObject>
+#include <QOpenGLBuffer>
+#include <QOpenGLVertexArrayObject>
 
 #include <memory>
+
+#include "jamomodel.hpp"
 
 class JamoViewRenderer : public QQuickFramebufferObject::Renderer
 {
@@ -37,9 +41,19 @@ public:
     QOpenGLFramebufferObject *createFramebufferObject(const QSize &size) override;
 
     void render() override;
+    void synchronize(QQuickFramebufferObject *item) override;
 
 private:
     QOpenGLShaderProgram *m_program = nullptr;
+    QString m_name = "";
+    Glyph *m_glyph = nullptr;
+
+    QOpenGLVertexArrayObject m_outlineVAO;
+    QOpenGLVertexArrayObject m_rectVAO;
+    QOpenGLBuffer m_outlineVBO;
+    QOpenGLBuffer m_rectVBO;
+
+    QVector<QPair<int, int>> intervals;
 };
 
 #endif

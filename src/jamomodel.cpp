@@ -1,15 +1,13 @@
 #include "jamomodel.hpp"
 
-void Jamo::addPath(QPoint start, QList<QVariantMap> points)
+Glyph::Glyph(fontutils::Glyph g, QObject* parent)
+    : QObject(parent), m_glyph(g)
 {
-    QVariantHash path;
-    path["start"] = start;
-    QVariantList list;
-    for (auto point : points) {
-        list << point;
-    }
-    path["points"] = list;
-    paths.append(path);
+}
+
+fontutils::Glyph Glyph::glyph()
+{
+    return m_glyph;
 }
 
 JamoModel::JamoModel(QObject *parent)
@@ -32,8 +30,8 @@ QVariant JamoModel::data(const QModelIndex& index, int role) const
     const Jamo &jamo = m_jamos[index.row()];
     if (role == NameRole)
         return jamo.name;
-    if (role == PathsRole)
-        return jamo.paths;
+    if (role == GlyphRole)
+        return QVariant::fromValue(jamo.glyph);
 
     return QVariant();
 }
@@ -48,6 +46,6 @@ QHash<int, QByteArray> JamoModel::roleNames() const
 {
     QHash<int, QByteArray> roles;
     roles[NameRole] = "name";
-    roles[PathsRole] = "path";
+    roles[GlyphRole] = "glyph";
     return roles;
 }

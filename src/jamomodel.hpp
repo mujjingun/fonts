@@ -7,12 +7,25 @@
 #include <QAbstractListModel>
 #include <QPoint>
 
+#include "fontutils/glyph.hpp"
+
+class Glyph : public QObject
+{
+    Q_OBJECT
+public:
+    Glyph(fontutils::Glyph g, QObject *parent);
+
+    fontutils::Glyph glyph();
+
+private:
+    fontutils::Glyph m_glyph;
+};
+Q_DECLARE_METATYPE(Glyph*)
+
 struct Jamo
 {
-    void addPath(QPoint start, QList<QVariantMap> points);
-
     QString name;
-    QVariantList paths = {};
+    Glyph *glyph = nullptr;
 };
 
 class JamoModel : public QAbstractListModel
@@ -21,7 +34,7 @@ class JamoModel : public QAbstractListModel
 public:
     enum JamoModelRoles {
         NameRole = Qt::UserRole + 1,
-        PathsRole
+        GlyphRole
     };
 
     JamoModel(QObject *parent = nullptr);

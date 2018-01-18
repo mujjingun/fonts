@@ -27,6 +27,8 @@
 #include <QQuickFramebufferObject>
 
 #include "jamoviewrenderer.hpp"
+#include "fontutils/glyph.hpp"
+#include "jamomodel.hpp"
 
 class JamoView : public QQuickFramebufferObject
 {
@@ -35,6 +37,10 @@ class JamoView : public QQuickFramebufferObject
                 READ name
                 WRITE setName
                 NOTIFY nameChanged)
+    Q_PROPERTY(Glyph *glyph
+               READ glyph
+               WRITE setGlyph
+               NOTIFY glyphChanged)
 
 public:
     JamoView();
@@ -42,13 +48,18 @@ public:
     QString name() const;
     void setName(const QString &name);
 
+    Glyph *glyph() const;
+    void setGlyph(Glyph *glyph);
+
     QQuickFramebufferObject::Renderer *createRenderer() const override;
 
 signals:
     void nameChanged() const;
+    void glyphChanged() const;
 
 private:
     QString m_name = "";
+    Glyph *m_glyph = nullptr;
     JamoViewRenderer *m_renderer = nullptr;
 };
 

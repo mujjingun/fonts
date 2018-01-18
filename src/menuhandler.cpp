@@ -29,7 +29,7 @@ void MenuHandler::loadFinished()
 
     fontutils::Glyph g = font.glyphs[0];
 
-    Jamo jamo{QString::fromStdString(g.chname)};
+    Jamo jamo{QString::fromStdString(g.chname), new Glyph(g, model)};
 
     model->addJamo(jamo);
 }

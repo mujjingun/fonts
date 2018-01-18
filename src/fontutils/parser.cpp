@@ -2,6 +2,7 @@
 
 #include <pugixml.hpp>
 
+#include "glyph.hpp"
 #include "subroutines.hpp"
 
 namespace fontutils

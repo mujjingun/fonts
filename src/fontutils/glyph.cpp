@@ -22,16 +22,15 @@ void Path::add(Line l)
     segments_.push_back(l);
 }
 
-std::vector<Segment> Path::segments()
+std::vector<Segment> Path::segments() const
 {
     return segments_;
 }
 
-fontutils::Point Path::start()
+fontutils::Point Path::start() const
 {
     return start_;
 }
-
 
 Glyph Glyph::from_charstring(std::string chname, std::string charstring)
 {

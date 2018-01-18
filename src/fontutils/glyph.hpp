@@ -24,7 +24,7 @@ public:
     { }
 
     template<typename T>
-    T get() {
+    T get() const {
         return static_cast<model<T> const*>(self.get())->data;
     }
 
@@ -49,8 +49,8 @@ public:
     Path(Point start);
     void add(Line l);
 
-    Point start();
-    std::vector<Segment> segments();
+    Point start() const;
+    std::vector<Segment> segments() const;
 
 private:
     Point start_;

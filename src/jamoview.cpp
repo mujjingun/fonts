@@ -27,6 +27,18 @@ JamoView::JamoView()
 {
 }
 
+Glyph *JamoView::glyph() const
+{
+    return m_glyph;
+}
+
+void JamoView::setGlyph(Glyph* glyph)
+{
+    m_glyph = glyph;
+
+    emit glyphChanged();
+}
+
 QQuickFramebufferObject::Renderer *
 JamoView::createRenderer() const
 {
@@ -40,9 +52,6 @@ QString JamoView::name() const
 
 void JamoView::setName(const QString &name)
 {
-    if (name == m_name)
-        return;
-
     m_name = name;
     emit nameChanged();
 }
