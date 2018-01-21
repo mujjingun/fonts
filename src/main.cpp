@@ -33,13 +33,7 @@
 #include "menuhandler.hpp"
 #include "jamoview.hpp"
 
-int main(int argc, char *argv[])
-{
-    qDebug() << "Qt Version: " << qVersion();
-    QGuiApplication app(argc, argv);
-
-    JamoModel model;
-    model.addJamo(Jamo{"Test", new Glyph(fontutils::Glyph::from_charstring("Test",
+/*
 R"(-120 50 900 50 hstem
 100 50 700 50 vstem
 
@@ -59,24 +53,51 @@ R"(-120 50 900 50 hstem
 
 -668 859 rmoveto
 318 -409 -318 -409 rlineto
-endchar")"), &model)});
+endchar)"
+*/
 
+int main(int argc, char *argv[])
+{
+    qDebug() << "Qt Version: " << qVersion();
+    QGuiApplication app(argc, argv);
+
+    JamoModel consonant_model({
+        JamoName::KIYEOK,
+        JamoName::SSANGKIYEOK,
+        JamoName::NIEUN,
+        JamoName::TIKEUT,
+        JamoName::SSANGTIKEUT,
+        JamoName::RIEUL,
+        JamoName::MIEUM,
+        JamoName::PIEUP,
+        JamoName::SSANGPIEUP,
+        JamoName::SIOS,
+        JamoName::SSANGSIOS,
+        JamoName::IEUNG,
+        JamoName::CIEUC,
+        JamoName::SSANGCIEUC,
+        JamoName::CHIEUCH,
+        JamoName::KHIEUHK,
+        JamoName::THIEUTH,
+        JamoName::PHIEUPH,
+        JamoName::HEIUH
+    });
+
+    // Register Types
     qmlRegisterType<JamoView>("fontmaker", 1, 0, "JamoView");
     qmlRegisterUncreatableType<Glyph>("fontmaker", 1, 0, "Glyph", "Glyph is uncreatable.");
 
     // Make Window
     QQmlApplicationEngine engine;
     QQmlContext *context = engine.rootContext();
-    context->setContextProperty("jamoModel", &model);
+    context->setContextProperty("consonantJamoModel", &consonant_model);
 
     QQmlComponent window_comp(&engine, QUrl(QStringLiteral("qrc:/qml/main.qml")));
     std::unique_ptr<QObject> window(window_comp.create());
     if (window_comp.isError())
         qDebug() << window_comp.errorString();
 
-    MenuHandler menuhandler(window.get(), &model);
-    QObject::connect(window.get(), SIGNAL(fileOpenSignal(QVariant)),
-                     &menuhandler, SLOT(fileOpenClicked(QVariant)));
+    MenuHandler menuhandler(window.get(), &consonant_model);
 
     return app.exec();
 }

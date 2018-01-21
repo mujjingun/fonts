@@ -47,6 +47,7 @@ private:
     QOpenGLShaderProgram *m_program = nullptr;
     QString m_name = "";
     Glyph *m_glyph = nullptr;
+    QQuickFramebufferObject *m_view = nullptr;
 
     QOpenGLVertexArrayObject m_outlineVAO;
     QOpenGLVertexArrayObject m_rectVAO;

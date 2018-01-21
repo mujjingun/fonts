@@ -31,13 +31,15 @@ JamoViewRenderer::createFramebufferObject(const QSize &size)
     return new QOpenGLFramebufferObject(size, format);
 }
 
+// TODO: make em per unit a uniform
 static const char vertex_shader_source[] =
 R"GLSL(
 
 attribute highp vec4 vertices;
 
 void main() {
-    gl_Position = vertices;
+    vec2 p = vec2(vertices.x, -vertices.y) / 1000.0;
+    gl_Position = vec4(p, 0, 1);
 }
 
 )GLSL";
@@ -46,7 +48,7 @@ static const char fragment_shader_source[] =
 R"GLSL(
 
 void main() {
-    gl_FragColor = vec4(0, 0, 0, 1);
+    gl_FragColor = vec4(1, 1, 1, 1);
 }
 
 )GLSL";
@@ -67,34 +69,30 @@ void JamoViewRenderer::render()
     m_program->bind();
 
     f->glClearColor(1, 1, 1, 1);
-    f->glEnable(GL_STENCIL_TEST);
-    f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    f->glDisable(GL_DEPTH_TEST);
+    f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    f->glBlendEquationSeparate(GL_FUNC_SUBTRACT, GL_FUNC_ADD);
+    f->glBlendFuncSeparate(GL_ONE, GL_ONE, GL_ONE, GL_ZERO);
 
     m_outlineVAO.bind();
 
-    f->glStencilFunc(GL_NEVER, 1, 0xFF);
-    f->glStencilOp(GL_INVERT, GL_KEEP, GL_KEEP);
-    f->glStencilMask(0xFF);
     for (auto const& interval : intervals) {
         f->glDrawArrays(GL_TRIANGLE_FAN, interval.first, interval.second);
     }
 
     m_outlineVAO.release();
-    m_rectVAO.bind();
-    f->glStencilFunc(GL_NOTEQUAL, 0, 0xFF);
-    f->glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-
-    f->glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-    m_rectVAO.release();
     m_program->release();
 
-    //update();
+    f->glBlendEquation(GL_FUNC_ADD);
+    f->glBlendFunc(GL_ONE, GL_ZERO);
+    f->glEnable(GL_DEPTH_TEST);
+    //m_view->window()->resetOpenGLState();
 }
 
 void JamoViewRenderer::synchronize(QQuickFramebufferObject* item)
 {
     JamoView *fbitem = static_cast<JamoView *>(item);
+    m_view = fbitem;
     m_name = fbitem->name();
     m_glyph = fbitem->glyph();
 
@@ -102,19 +100,18 @@ void JamoViewRenderer::synchronize(QQuickFramebufferObject* item)
     intervals.clear();
     for (auto const &path : m_glyph->glyph().paths) {
         intervals << QPair<int, int>(values.count(), path.segments().size() + 1);
-        values << QVector2D(path.start().x, path.start().y) / 1000.0;
+        values << QVector2D(path.start().x, path.start().y);
         for (auto const& seg : path.segments()) {
-            auto p = seg.get<fontutils::Line>().p;
-            values << QVector2D(p.x, p.y) / 1000.0;
+            fontutils::Line const *line;
+            fontutils::CubicBezier const *bezier;
+            if ((line = seg.get<fontutils::Line>())) {
+                values << QVector2D(line->p.x, line->p.y);
+            }
+            else if ((bezier = seg.get<fontutils::CubicBezier>())) {
+                values << QVector2D(bezier->p.x, bezier->p.y);
+            }
         }
     }
-
-    QVector<QVector2D> quad_values = {
-        {-1, -1},
-        {-1, 1},
-        {1, -1},
-        {1, 1}
-    };
 
     QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
     {
@@ -128,7 +125,21 @@ void JamoViewRenderer::synchronize(QQuickFramebufferObject* item)
         f->glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
         m_outlineVBO.release();
     }
+
+    // Initialize Quad
     {
+        QVector<QVector2D> quad_values = {
+            {-1, -1},
+            {-1, 1},
+            {1, -1},
+            {1, -1},
+            {-1, 1},
+            {1, 1},
+            {1, -1},
+            {-1, 1},
+            {1, 1},
+        };
+
         QOpenGLVertexArrayObject::Binder vao_binder(&m_rectVAO);
         m_rectVBO.create();
         m_rectVBO.bind();

@@ -4,10 +4,12 @@
 #include <QObject>
 #include <QString>
 #include <QList>
+#include <QMap>
 #include <QAbstractListModel>
 #include <QPoint>
 
 #include "fontutils/glyph.hpp"
+#include "jamonames.hpp"
 
 class Glyph : public QObject
 {
@@ -37,19 +39,21 @@ public:
         GlyphRole
     };
 
-    JamoModel(QObject *parent = nullptr);
+    JamoModel(QList<JamoName> names, QObject *parent = nullptr);
 
-    void addJamo(const Jamo &jamo);
+    void setJamo(JamoName name, Jamo jamo);
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
 
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
 
+    Qt::ItemFlags flags(const QModelIndex &index) const override;
+
 protected:
     QHash<int, QByteArray> roleNames() const override;
 
 private:
-    QList<Jamo> m_jamos;
+    QMap<JamoName, Jamo> m_jamos;
 };
 
 #endif

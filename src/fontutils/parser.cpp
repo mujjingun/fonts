@@ -5,6 +5,8 @@
 #include "glyph.hpp"
 #include "subroutines.hpp"
 
+#include <iostream>
+
 namespace fontutils
 {
 
@@ -36,11 +38,10 @@ Font parse_font(std::string ttx_filename)
 
     auto cff = body.child("CFF");
 
-    std::vector<Subroutine> global_subrs;
-    std::unordered_map<int, std::vector<Subroutine>> local_subrs;
+    subroutine_set subroutines;
 
     for (auto charstring : cff.child("GlobalSubrs")) {
-        global_subrs.push_back(Subroutine(charstring.text().get()));
+        subroutines[-1].push_back(Subroutine(charstring.text().get()));
     }
 
     Font font;
@@ -50,20 +51,21 @@ Font parse_font(std::string ttx_filename)
 
         for (auto item : cff_font.child("FDArray")) {
             int idx = item.attribute("index").as_int();
-            auto subrs = item.child("Subrs");
+            auto subrs = item.child("Private").child("Subrs");
             if (subrs) {
                 for (auto charstring : subrs) {
-                    local_subrs[idx].push_back(Subroutine(charstring.text().get()));
+                    subroutines[idx].push_back(Subroutine(charstring.text().get()));
                 }
             }
         }
 
         for (auto charstring : cff_font.child("CharStrings")) {
             std::string chname = charstring.attribute("name").as_string();
+            int fd_index = charstring.attribute("fdSelectIndex").as_int();
             auto it = cmap.find(chname);
             if (it != cmap.end()) {
                 char32_t unicode = it->second;
-                font.glyphs[unicode] = Glyph::from_charstring(chname, charstring.text().get());
+                font.glyphs[unicode] = Glyph::from_charstring(chname, charstring.text().get(), subroutines, fd_index);
             }
         }
     }

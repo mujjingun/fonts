@@ -35,7 +35,7 @@ Glyph *JamoView::glyph() const
 void JamoView::setGlyph(Glyph* glyph)
 {
     m_glyph = glyph;
-
+    update();
     emit glyphChanged();
 }
 

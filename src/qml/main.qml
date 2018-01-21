@@ -28,34 +28,41 @@ import QtQuick.Dialogs 1.0
 ApplicationWindow {
     id: window
     visible: true
-    width: 640
-    height: 480
+    width: 1024
+    height: 600
+    color: activePalette.window
     title: qsTr("Hangul Font Maker v0.0.1")
 
     SystemPalette { id: activePalette }
 
-    signal fileOpenSignal(var filename)
+    signal fileImportSignal(var filename)
     signal fileLoaded()
 
     onFileLoaded: {
-        busy.running = false;
+        busy.visible = false;
     }
 
     FileDialog {
         id: fileDialog
-        title: "Please choose a file"
+        title: qsTr("Please choose a file")
         folder: shortcuts.home
         onAccepted: {
-            window.fileOpenSignal(fileDialog.fileUrl);
-            busy.running = true;
+            window.fileImportSignal(fileDialog.fileUrl);
+            busy.visible = true;
         }
     }
 
-    BusyIndicator {
+    Rectangle {
         id: busy
-        anchors.centerIn: parent
-        running: false
-
+        anchors.fill: parent
+        z: 10000
+        visible: false
+        color: "transparent"
+        BusyIndicator {
+            anchors.centerIn: parent
+            running: true
+            z: 10001
+        }
     }
 
     menuBar: MenuBar {
@@ -67,13 +74,20 @@ ApplicationWindow {
             }
             Action {
                 text: qsTr("&Open...")
-                onTriggered: fileDialog.open()
             }
             Action {
                 text: qsTr("&Save")
             }
             Action {
                 text: qsTr("Save &As...")
+            }
+            MenuSeparator { }
+            Action {
+                text: qsTr("&Import from OTF...")
+                onTriggered: fileDialog.open()
+            }
+            Action {
+                text: qsTr("&Export to OTF...")
             }
             MenuSeparator { }
             Action {
@@ -122,6 +136,7 @@ ApplicationWindow {
         Rectangle {
             id: consonants_view
             height: flow.height
+            color: "transparent"
             anchors {
                 top: consonants_title.bottom;
                 left: parent.left; right: parent.right
@@ -135,7 +150,7 @@ ApplicationWindow {
 
                 Repeater {
                     id: jamorepeat
-                    model: jamoModel
+                    model: consonantJamoModel
 
                     delegate: JamoDelegate {}
                 } // Repeater

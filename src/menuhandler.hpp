@@ -16,7 +16,7 @@ public:
     MenuHandler(QObject *window, JamoModel *model);
 
 public slots:
-    void fileOpenClicked(QVariant file);
+    void fileImportClicked(QVariant file);
     void loadFinished();
 
 private:

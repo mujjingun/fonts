@@ -4,6 +4,8 @@
 #include <vector>
 #include <memory>
 
+#include "subroutines.hpp"
+
 namespace fontutils {
 
 struct Point
@@ -16,6 +18,11 @@ struct Line
     Point p;
 };
 
+struct CubicBezier
+{
+    Point ct1, ct2, p;
+};
+
 class Segment
 {
 public:
@@ -24,8 +31,11 @@ public:
     { }
 
     template<typename T>
-    T get() const {
-        return static_cast<model<T> const*>(self.get())->data;
+    T const *get() const {
+        model<T> const* p;
+        if ((p = dynamic_cast<model<T> const*>(self.get())))
+            return &p->data;
+        else return nullptr;
     }
 
 private:
@@ -48,6 +58,7 @@ public:
     Path() = default;
     Path(Point start);
     void add(Line l);
+    void add(CubicBezier b);
 
     Point start() const;
     std::vector<Segment> segments() const;
@@ -62,7 +73,13 @@ struct Glyph
     std::string chname;
     std::vector<Path> paths;
 
-    static Glyph from_charstring(std::string chname, std::string charstring);
+    int width;
+
+    static Glyph from_charstring(
+        std::string const& chname,
+        std::string const& charstring,
+        subroutine_set const& subroutines,
+        int fd_index);
 };
 
 }
