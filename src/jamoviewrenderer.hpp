@@ -47,7 +47,6 @@ private:
 
     void rebuild(QOpenGLFunctions *f);
 
-    QOpenGLShaderProgram *m_program = nullptr;
     QString m_name = "";
     Glyph *m_glyph = nullptr;
     QQuickFramebufferObject *m_view = nullptr;
