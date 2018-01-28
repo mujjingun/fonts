@@ -23,35 +23,6 @@ struct CubicBezier
     Point ct1, ct2, p;
 };
 
-class Segment
-{
-public:
-    template<typename T>
-    Segment(T x) : self(std::make_shared<model<T>>(std::move(x)))
-    { }
-
-    template<typename T>
-    T const *get() const {
-        model<T> const* p;
-        if ((p = dynamic_cast<model<T> const*>(self.get())))
-            return &p->data;
-        else return nullptr;
-    }
-
-private:
-    struct concept {
-        virtual ~concept() = default;
-    };
-
-    template<typename T>
-    struct model final : concept {
-        model(T x) : data(std::move(x)) {}
-        T data;
-    };
-
-    std::shared_ptr<const concept> self;
-};
-
 class Path
 {
 public:
@@ -61,19 +32,20 @@ public:
     void add(CubicBezier b);
 
     Point start() const;
-    std::vector<Segment> segments() const;
+    std::vector<CubicBezier> segments() const;
 
 private:
     Point start_;
-    std::vector<Segment> segments_;
+    std::vector<CubicBezier> segments_;
 };
 
 struct Glyph
 {
     std::string chname;
     std::vector<Path> paths;
-
     int width;
+
+    Glyph();
 
     static Glyph from_charstring(
         std::string const& chname,

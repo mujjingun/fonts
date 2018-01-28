@@ -33,4 +33,6 @@ void MenuHandler::loadFinished()
     model->setJamo(JamoName::KIYEOK, Jamo{QString::fromStdString(g.chname), new Glyph(g, model)});
     fontutils::Glyph g2 = font.glyphs.at(0x3147);
     model->setJamo(JamoName::IEUNG, Jamo{QString::fromStdString(g2.chname), new Glyph(g2, model)});
+    fontutils::Glyph g3 = font.glyphs.at(0x314E);
+    model->setJamo(JamoName::HEIUH, Jamo{QString::fromStdString(g3.chname), new Glyph(g3, model)});
 }

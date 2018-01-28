@@ -19,7 +19,7 @@ Path::Path(Point start)
 
 void Path::add(Line l)
 {
-    segments_.push_back(l);
+    segments_.push_back(CubicBezier{l.p, l.p, l.p});
 }
 
 void Path::add(CubicBezier b)
@@ -27,12 +27,12 @@ void Path::add(CubicBezier b)
     segments_.push_back(b);
 }
 
-std::vector<Segment> Path::segments() const
+std::vector<CubicBezier> Path::segments() const
 {
     return segments_;
 }
 
-fontutils::Point Path::start() const
+Point Path::start() const
 {
     return start_;
 }
@@ -72,14 +72,17 @@ static void call_subroutine(
         // sarg is a command
 
         // starts with a width argument
-        if (command_index == 0) {
-            if ((stack.size() % 2 == 1 &&
-                    (sarg == "hstem" || sarg == "hstemhm" || sarg == "vstem" || sarg == "vstemhm" ||
-                     sarg == "cntrmask" || sarg == "hintmask" || sarg == "rmoveto" || sarg == "endchar")) ||
-                (stack.size() == 2 && (sarg == "hmoveto" || sarg == "vmoveto"))) {
-                width = stack[0];
-                stack.pop_front();
-            }
+        auto starts_with_width = [](std::string const& sarg, int stack_size) {
+            bool is_even_arg_command =
+                    sarg == "hstem" || sarg == "hstemhm" || sarg == "vstem" || sarg == "vstemhm" ||
+                    sarg == "cntrmask" || sarg == "hintmask" || sarg == "rmoveto" || sarg == "endchar";
+
+            return (stack_size % 2 == 1 && is_even_arg_command) ||
+                   (stack_size == 2 && (sarg == "hmoveto" || sarg == "vmoveto"));
+        };
+        if (command_index == 0 && starts_with_width(sarg, stack.size())) {
+            width = stack[0];
+            stack.pop_front();
         }
 
         if (sarg == "rmoveto") {
@@ -109,7 +112,7 @@ static void call_subroutine(
             if (stack.size() != 1)
                 throw std::invalid_argument("incorrect number of arguments for vmoveto");
 
-            pos.y += stack[1];
+            pos.y += stack[0];
             paths.push_back(Path(pos));
             stack.clear();
         }
@@ -516,6 +519,28 @@ static std::vector<Path> parse_charstring(
     parse_state state;
     call_subroutine(charstring, subroutines, fd_index, state);
     return state.paths;
+}
+
+Glyph::Glyph()
+{
+    char const charstring[] =
+        "-120 50 900 50 hstem\n"
+        "100 50 700 50 vstem\n"
+        "100 -120 rmoveto\n"
+        "800 1000 -800 hlineto\n"
+        "400 -459 rmoveto\n"
+        "-318 409 rlineto\n"
+        "636 hlineto\n"
+        "-286 -450 rmoveto\n"
+        "318 409 rlineto\n"
+        "-818 vlineto\n"
+        "-668 -41 rmoveto\n"
+        "318 409 318 -409 rlineto\n"
+        "-668 859 rmoveto\n"
+        "318 -409 -318 -409 rlineto\n"
+        "endchar";
+    chname = ".notdef";
+    paths = parse_charstring(charstring, {}, -1);
 }
 
 Glyph Glyph::from_charstring(

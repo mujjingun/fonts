@@ -44,17 +44,20 @@ public:
     void synchronize(QQuickFramebufferObject *item) override;
 
 private:
+
+    void rebuild(QOpenGLFunctions *f);
+
     QOpenGLShaderProgram *m_program = nullptr;
     QString m_name = "";
     Glyph *m_glyph = nullptr;
     QQuickFramebufferObject *m_view = nullptr;
 
     QOpenGLVertexArrayObject m_outlineVAO;
-    QOpenGLVertexArrayObject m_rectVAO;
     QOpenGLBuffer m_outlineVBO;
-    QOpenGLBuffer m_rectVBO;
 
-    QVector<QPair<int, int>> intervals;
+    bool m_dirty = true;
+
+    QVector<int> indices, indices2;
 };
 
 #endif
