@@ -32,15 +32,25 @@ Font parse_font(std::string ttx_filename)
     if (result.status != pugi::status_ok)
         throw std::runtime_error(std::string("Cannot load file : ") + result.description());
 
-    auto body = doc.child("ttFont");
+    const auto body = doc.child("ttFont");
+
+    const auto gsub = body.child("GSUB");
+    for (auto item : gsub.child("LookupList")) {
+        for (auto it = std::next(item.begin(), 2); it != item.end(); ++it) {
+            //if (std::string(it->name()) == "ChainContextSubst")
+                //std::cout <<  << std::endl;
+        }
+    }
+
+    const auto gpos = body.child("GPOS");
 
     const auto cmap = parse_cmap(body.child("cmap"));
 
-    auto cff = body.child("CFF");
+    const auto cff = body.child("CFF");
 
     subroutine_set subroutines;
 
-    for (auto charstring : cff.child("GlobalSubrs")) {
+    for (auto const charstring : cff.child("GlobalSubrs")) {
         subroutines[-1].push_back(Subroutine(charstring.text().get()));
     }
 
@@ -49,17 +59,17 @@ Font parse_font(std::string ttx_filename)
     { // TODO: do for each subfont
         auto cff_font = cff.child("CFFFont");
 
-        for (auto item : cff_font.child("FDArray")) {
+        for (auto const item : cff_font.child("FDArray")) {
             int idx = item.attribute("index").as_int();
             auto subrs = item.child("Private").child("Subrs");
             if (subrs) {
-                for (auto charstring : subrs) {
+                for (auto const charstring : subrs) {
                     subroutines[idx].push_back(Subroutine(charstring.text().get()));
                 }
             }
         }
 
-        for (auto charstring : cff_font.child("CharStrings")) {
+        for (auto const charstring : cff_font.child("CharStrings")) {
             std::string chname = charstring.attribute("name").as_string();
             int fd_index = charstring.attribute("fdSelectIndex").as_int();
             auto it = cmap.find(chname);

@@ -24,6 +24,8 @@ import QtQuick.Window 2.2
 import QtQuick.Controls 2.3
 import QtQuick.Layouts 1.3
 import QtQuick.Dialogs 1.0
+import QtGraphicalEffects 1.0
+import fontmaker 1.0
 
 ApplicationWindow {
     id: window
@@ -107,80 +109,132 @@ ApplicationWindow {
         }
     }
 
-    Flickable {
-        id: flicker
+    SwipeView {
+        id: swipeview
+        currentIndex: tabbar.currentIndex
+        interactive: false
+
         anchors {
             top: menu.bottom;
-            bottom: statusbar.top;
+            bottom: tabbar.top;
             left: parent.left;
             right: parent.right;
-            margins: 4
         }
-        contentWidth: width
-        contentHeight: contentItem.childrenRect.height
-        ScrollBar.vertical: ScrollBar {}
-        boundsBehavior: Flickable.StopAtBounds
-        focus: true
-        clip: true
 
-        Text {
-            id: consonants_title
-            text: "Consonants"
-            anchors {
-                top: parent.top;
-                left: parent.left;
-                margins: 4
+        Flickable {
+            id: flicker
+            contentWidth: width
+            contentHeight: contentItem.childrenRect.height
+            ScrollBar.vertical: ScrollBar {}
+            boundsBehavior: Flickable.StopAtBounds
+            focus: true
+            clip: true
+
+            Text {
+                id: consonants_title
+                text: "Consonants"
+                anchors {
+                    top: parent.top;
+                    left: parent.left;
+                    margins: 4
+                }
+            }
+
+            Rectangle {
+                id: consonants_view
+                height: flow.height
+                color: "transparent"
+                anchors {
+                    top: consonants_title.bottom;
+                    left: parent.left; right: parent.right
+                    margins: 4
+                }
+                Flow {
+                    id: flow
+                    anchors.centerIn: parent
+                    width: parent.width
+                    spacing: 10
+
+                    Repeater {
+                        id: jamorepeat
+                        model: consonantJamoModel
+
+                        delegate: JamoDelegate {}
+                    } // Repeater
+                } // Flow
+            } // Rectangle
+
+            Text {
+                id: vowels_title
+                text: "Vowels"
+                anchors {
+                    top: consonants_view.bottom
+                    left: parent.left
+                    margins: 4
+                }
+            }
+
+            ListView {
+                id: vowels_view
+                anchors {
+                    top: vowels_title.bottom;
+                    left: parent.left; right: parent.right
+                    margins: 4
+                }
+                spacing: 10
             }
         }
 
         Rectangle {
-            id: consonants_view
-            height: flow.height
             color: "transparent"
-            anchors {
-                top: consonants_title.bottom;
-                left: parent.left; right: parent.right
-                margins: 4
+
+            DropShadow {
+                anchors.fill: jamoedit
+                horizontalOffset: 0
+                verticalOffset: 0
+                radius: 8
+                samples: 17
+                color: "#40000000"
+                source: jamoedit
             }
-            Flow {
-                id: flow
-                anchors.centerIn: parent
-                width: parent.width
-                spacing: 10
 
-                Repeater {
-                    id: jamorepeat
-                    model: consonantJamoModel
+            JamoView {
+                id: jamoedit
+                anchors.left: parent.left
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                width: height
+                anchors.margins: 8
+                name: ""
+                editable: true
+            }
 
-                    delegate: JamoDelegate {}
-                } // Repeater
-            } // Flow
-        } // Rectangle
-
-        Text {
-            id: vowels_title
-            text: "Vowels"
-            anchors {
-                top: consonants_view.bottom
-                left: parent.left
-                margins: 4
+            MouseArea {
+                anchors.fill: jamoedit
+                hoverEnabled: true
+                onPressed: jamoedit.pressed(mouse.x, mouse.y)
+                onPositionChanged: jamoedit.moved(mouse.x, mouse.y)
+                onReleased: jamoedit.unpressed(mouse.x, mouse.y)
             }
         }
 
-        ListView {
-            id: vowels_view
-            anchors {
-                top: vowels_title.bottom;
-                left: parent.left; right: parent.right
-                margins: 4
-            }
-            spacing: 10
+        Rectangle {
+            color: "transparent"
         }
     }
 
-    footer: Rectangle {
-        id: statusbar
+    footer: TabBar {
+        id: tabbar
+        currentIndex: swipeview.currentIndex
         width: parent.width; height: 32
-        color: activePalette.window
+        TabButton {
+            text: qsTr("Glyphs")
+        }
+        TabButton {
+            text: qsTr("Design")
+        }
+        TabButton {
+            text: qsTr("Preview")
+        }
     }
 }

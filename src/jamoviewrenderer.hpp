@@ -35,28 +35,53 @@
 
 #include "jamomodel.hpp"
 
-class JamoViewRenderer : public QQuickFramebufferObject::Renderer
+class JamoViewRenderer : public QObject, public QQuickFramebufferObject::Renderer
 {
+    Q_OBJECT
 public:
+    JamoViewRenderer();
+
     QOpenGLFramebufferObject *createFramebufferObject(const QSize &size) override;
 
     void render() override;
     void synchronize(QQuickFramebufferObject *item) override;
+    void pressed(int x, int y);
+    void moved(int x, int y);
+    void unpressed(int x, int y);
 
 private:
 
     void rebuild(QOpenGLFunctions *f);
+    void rebuild_outlines(QOpenGLFunctions *f);
+    void rebuild_grid(QOpenGLFunctions *f);
+
+    int find_point(int mouse_x, int mouse_y) const;
 
     QString m_name = "";
     Glyph *m_glyph = nullptr;
+    bool m_editable = false;
     QQuickFramebufferObject *m_view = nullptr;
 
-    QOpenGLVertexArrayObject m_outlineVAO;
-    QOpenGLBuffer m_outlineVBO;
+    QOpenGLVertexArrayObject m_outlineVAO{};
+    QOpenGLBuffer m_outlineVBO{};
+
+    QOpenGLVertexArrayObject m_gridVAO{};
+    QOpenGLBuffer m_gridVBO{};
 
     bool m_dirty = true;
 
-    QVector<int> indices, indices2;
+    QTransform m_DU_to_GL{};
+    QTransform m_screen_to_DU{};
+
+    QVector<QPair<QVector2D, int>> m_verts{};
+
+    QVector<int> m_indices{};
+    QVector<int> m_grid_indices{};
+
+    int m_hover_point_idx = -1;
+    int m_selected_point_idx = -1;
+    QVector<int> m_point_indices{};
 };
 
 #endif
+

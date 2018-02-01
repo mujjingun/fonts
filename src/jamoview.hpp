@@ -41,6 +41,9 @@ class JamoView : public QQuickFramebufferObject
                READ glyph
                WRITE setGlyph
                NOTIFY glyphChanged)
+    Q_PROPERTY(bool editable
+               READ editable
+               WRITE setEditable)
 
 public:
     JamoView();
@@ -51,15 +54,22 @@ public:
     Glyph *glyph() const;
     void setGlyph(Glyph *glyph);
 
+    bool editable() const;
+    void setEditable(bool editable);
+
     QQuickFramebufferObject::Renderer *createRenderer() const override;
 
 signals:
     void nameChanged() const;
     void glyphChanged() const;
+    void pressed(int x, int y) const;
+    void moved(int x, int y) const;
+    void unpressed(int x, int y) const;
 
 private:
     QString m_name = "";
     Glyph *m_glyph = nullptr;
+    bool m_editable = false;
     JamoViewRenderer *m_renderer = nullptr;
 };
 

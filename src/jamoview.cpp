@@ -25,6 +25,20 @@
 
 JamoView::JamoView()
 {
+    setMirrorVertically(true);
+    connect(this, &JamoView::pressed, this, &JamoView::update);
+    connect(this, &JamoView::moved, this, &JamoView::update);
+    connect(this, &JamoView::unpressed, this, &JamoView::update);
+}
+
+bool JamoView::editable() const
+{
+    return m_editable;
+}
+
+void JamoView::setEditable(bool editable)
+{
+    m_editable = editable;
 }
 
 Glyph *JamoView::glyph() const
@@ -42,7 +56,11 @@ void JamoView::setGlyph(Glyph* glyph)
 QQuickFramebufferObject::Renderer *
 JamoView::createRenderer() const
 {
-    return new JamoViewRenderer;
+    auto renderer = new JamoViewRenderer;
+    connect(this, &JamoView::pressed, renderer, &JamoViewRenderer::pressed);
+    connect(this, &JamoView::moved, renderer, &JamoViewRenderer::moved);
+    connect(this, &JamoView::unpressed, renderer, &JamoViewRenderer::unpressed);
+    return renderer;
 }
 
 QString JamoView::name() const

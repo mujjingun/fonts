@@ -1,11 +1,10 @@
 import QtQuick 2.7
-import QtQuick.Shapes 1.0
 import QtGraphicalEffects 1.0
 import fontmaker 1.0
 
 Rectangle {
-    width: 300
-    height: 300
+    width: 100
+    height: 100
 
     DropShadow {
         anchors.fill: jamo
@@ -28,4 +27,11 @@ Rectangle {
         text: name
     }
 
+    MouseArea {
+        anchors.fill: parent
+        onClicked: {
+            jamoedit.name = jamo.name;
+            jamoedit.glyph = jamo.glyph;
+        }
+    }
 }
