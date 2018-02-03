@@ -103,10 +103,10 @@ void JamoViewRenderer::rebuild_outlines(QOpenGLFunctions* f)
     verts << QVector2D(0, 0);
     if (m_glyph)
     {
-        for (auto const &path : m_glyph->glyph().paths)
+        for (auto &path : m_glyph->glyph().paths)
         {
             verts << QVector2D(path.start().x, path.start().y);
-            m_verts.append({QVector2D(path.start().x, path.start().y), verts.size() - 1});
+            //m_verts.append({path.start(), verts.size() - 1});
             m_point_indices << verts.size() - 1;
             int start_idx = verts.size() - 1;
 
@@ -129,7 +129,7 @@ void JamoViewRenderer::rebuild_outlines(QOpenGLFunctions* f)
                 }
 
                 verts << b3;
-                m_verts.append({b3, verts.size() - 1});
+                //m_verts.append({seg.p, verts.size() - 1});
                 m_indices << 0 << verts.size() - 2 << verts.size() - 1;
                 m_point_indices << verts.size() - 1;
             }

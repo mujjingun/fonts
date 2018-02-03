@@ -33,27 +33,11 @@
 #include "menuhandler.hpp"
 #include "jamoview.hpp"
 
-/*
-R"(-120 50 900 50 hstem
-100 50 700 50 vstem
-
-100 -120 rmoveto
-800 1000 -800 hlineto
-
-400 -459 rmoveto
--318 409 rlineto
-636 hlineto
-
--286 -450 rmoveto
-318 409 rlineto
--818 vlineto
-
--668 -41 rmoveto
-318 409 318 -409 rlineto
-
--668 859 rmoveto
-318 -409 -318 -409 rlineto
-endchar)"
+/* Goals
+ * 1. Make Hangul Fonts (11172 forms) from scratch
+ * 2. Save to project file
+ * 3. Open project file
+ * 4. (?) Import font from .otf
 */
 
 int main(int argc, char *argv[])
