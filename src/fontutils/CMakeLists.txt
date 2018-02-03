@@ -13,5 +13,12 @@ set(UTILS_SOURCE_FILES
     glyph.cpp
     subroutines.cpp
     parser.cpp
+    otfwriter.cpp
     )
 add_library(${PROJECT_NAME}utils STATIC ${UTILS_SOURCE_FILES})
+target_link_libraries(${PROJECT_NAME}utils
+    ${PROJECT_NAME}makeotflib
+    )
+target_include_directories(${PROJECT_NAME}utils PUBLIC
+    ${PROJECT_SOURCE_DIR}/src
+    )

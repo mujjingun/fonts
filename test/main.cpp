@@ -10,6 +10,12 @@ int main(int argc, char* argv[])
     return RUN_ALL_TESTS();
 }
 
+TEST(write_font, makeotf)
+{
+
+}
+
+#if 0
 TEST(open_file, ttx)
 {
     pugi::xml_document doc;
@@ -92,3 +98,4 @@ TEST(open_file, ttx)
     auto duration = std::chrono::duration_cast<std::chrono::seconds>(t2 - t1).count();
     std::cout << "compile_result : " << compile_result << ", took " << duration << " seconds.\n";
 }
+#endif

@@ -1,4 +1,5 @@
 
+add_subdirectory(makeotf)
 add_subdirectory(fontutils)
 
 qt5_add_resources(SOURCE_FILES resources.qrc)
