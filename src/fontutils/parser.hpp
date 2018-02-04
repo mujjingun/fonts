@@ -5,7 +5,8 @@
 
 #include "glyph.hpp"
 
-namespace fontutils {
+namespace fontutils
+{
 
 struct Font
 {

@@ -16,9 +16,9 @@ set(UTILS_SOURCE_FILES
     otfwriter.cpp
     )
 add_library(${PROJECT_NAME}utils STATIC ${UTILS_SOURCE_FILES})
-target_link_libraries(${PROJECT_NAME}utils
+target_link_libraries(${PROJECT_NAME}utils PRIVATE
     ${PROJECT_NAME}makeotflib
     )
-target_include_directories(${PROJECT_NAME}utils PUBLIC
+target_include_directories(${PROJECT_NAME}utils PRIVATE
     ${PROJECT_SOURCE_DIR}/src
     )

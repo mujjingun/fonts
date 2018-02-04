@@ -47,13 +47,12 @@ if(BUILD_TESTING)
 
     target_include_directories(${PROJECT_NAME}_test
         PUBLIC
-        ${PROJECT_SOURCE_DIR}/makeotf/api
+        ${PROJECT_SOURCE_DIR}/src
         ${PUGIXML_INCLUDE_DIR}
         ${GTEST_INCLUDE_DIRS})
 
     target_link_libraries(${PROJECT_NAME}_test
-        #${PROJECT_NAME}
-        #${PROJECT_NAME}makeotflib
+        ${PROJECT_NAME}utils
         Threads::Threads
         ${PUGIXML_LIBRARY}
         ${GTEST_BOTH_LIBRARIES})

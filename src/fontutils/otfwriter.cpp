@@ -52,6 +52,8 @@ struct FontWriter
     FontWriter(std::string const &filename);
     ~FontWriter();
 
+    void convert();
+
     hotCtx ctx;
     std::string psdata, cffdata, otfdata, featuredata;
     std::ofstream out;
@@ -107,6 +109,8 @@ FontWriter::~FontWriter()
     hotFree(ctx);
 }
 
+/* Callbacks */
+
 void FontWriter::fatal(void *ctx)
 {
     hotFree(static_cast<FontWriter*>(ctx)->ctx);
@@ -141,6 +145,11 @@ void *FontWriter::realloc(void *, void *old, size_t size)
     void *mem = std::realloc(old, size);
     if (!mem) throw std::bad_alloc();
     return mem;
+}
+
+void FontWriter::free(void *, void *ptr)
+{
+    std::free(ptr);
 }
 
 char *FontWriter::psId(void *)
@@ -274,6 +283,11 @@ void FontWriter::tmpWriteN(void *, long count, char *ptr)
     throw std::runtime_error("unimplemented");
 }
 
+void FontWriter::tmpRewind(void *)
+{
+    throw std::runtime_error("unimplemented");
+}
+
 char *FontWriter::tmpRefill(void *, long *count)
 {
     throw std::runtime_error("unimplemented");
@@ -314,6 +328,13 @@ void FontWriter::uvsClose(void *)
     throw std::runtime_error("unimplemented");
 }
 
+/* End of callbacks */
+
+void FontWriter::convert()
+{
+    hotConvert(ctx);
+}
+
 void writeOTF(Font const& font, std::string filename)
 {
     FontWriter writer(filename);
@@ -326,7 +347,7 @@ void writeOTF(Font const& font, std::string filename)
     //hotAddName(ctx, );
     //hotAddMiscData(ctx, );
     //hotAddCMap(ctx, );
-    hotConvert(writer.ctx);
+    writer.convert();
 }
 
 }

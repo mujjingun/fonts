@@ -3,6 +3,8 @@
 #include <pugixml.hpp>
 #include <chrono>
 
+#include "fontutils/otfwriter.hpp"
+
 int main(int argc, char* argv[])
 {
     ::testing::InitGoogleTest(&argc, argv);
@@ -12,7 +14,7 @@ int main(int argc, char* argv[])
 
 TEST(write_font, makeotf)
 {
-
+    fontutils::writeOTF(fontutils::Font{}, "test.otf");
 }
 
 #if 0
