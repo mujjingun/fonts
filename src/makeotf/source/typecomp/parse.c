@@ -14,6 +14,7 @@
 #include "encoding.h"
 #include "sindex.h"
 #include "charset.h"
+#include "t13.h"
 #include "recode.h"
 
 #include "txops.h"

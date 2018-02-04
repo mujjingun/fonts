@@ -11,6 +11,7 @@
 #include "subr.h"
 #include "parse.h"
 #include "recode.h"
+#include "t13.h"
 
 #include <stdio.h>
 #include <stdlib.h>

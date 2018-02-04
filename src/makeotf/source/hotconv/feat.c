@@ -6,7 +6,6 @@
  *	handles feat file
  */
 
-#include <stdio.h>
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdlib.h>

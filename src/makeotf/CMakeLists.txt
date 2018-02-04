@@ -10,19 +10,14 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
 set(MAKEOTFLIB_SOURCE_FILES
-    source/cffread/cffread.c
-
-    source/dynarr/dynarr.c
-
-    source/ctutil/ctutil.c
-
     source/hotconv/anon.c
+    source/hotconv/BASE.c
+    source/hotconv/CFF_.c
     source/hotconv/cmap.c
-    #source/hotconv/feat.c
-    source/hotconv/featerr.c
-    source/hotconv/featgram.c
-    source/hotconv/featscan.c
     source/hotconv/fvar.c
+    source/hotconv/GDEF.c
+    source/hotconv/GPOS.c
+    source/hotconv/GSUB.c
     source/hotconv/head.c
     source/hotconv/hhea.c
     source/hotconv/hmtx.c
@@ -39,24 +34,22 @@ set(MAKEOTFLIB_SOURCE_FILES
     source/hotconv/vhea.c
     source/hotconv/vmtx.c
     source/hotconv/VORG.c
-    source/hotconv/BASE.c
-    source/hotconv/CFF_.c
-    source/hotconv/GDEF.c
-    source/hotconv/GPOS.c
-    source/hotconv/GSUB.c
+    source/hotconv/featerr.c
+    source/hotconv/featgram.c
+    source/hotconv/featscan.c
+
+    source/dynarr/dynarr.c
+
+    source/ctutil/ctutil.c
+
+    source/cffread/cffread.c
+
+    source/typecomp/tc.c
+    source/typecomp/cs.c
+    source/typecomp/sindex.c
+    source/typecomp/encoding.c
 
     source/pstoken/pstoken.c
-
-    source/typecomp/charset.c
-    source/typecomp/cs.c
-    source/typecomp/dict.c
-    source/typecomp/encoding.c
-    source/typecomp/fdselect.c
-    source/typecomp/parse.c
-    source/typecomp/recode.c
-    source/typecomp/sindex.c
-    source/typecomp/subr.c
-    source/typecomp/tc.c
     )
 add_library(${PROJECT_NAME}makeotflib STATIC ${MAKEOTFLIB_SOURCE_FILES})
 target_include_directories(${PROJECT_NAME}makeotflib PRIVATE

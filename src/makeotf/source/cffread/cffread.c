@@ -2684,3 +2684,120 @@ int cffExecLocalMetric(cffCtx h, char *cstr, long length, cffFixed *result) {
 	}
 	return h->stack.cnt;
 }
+
+/*
+ * Type 13 charstring support.
+ *
+ * The code may be compiled to support CJK protected fonts (via Type 13
+ * charstrings) or to fail on such fonts. Support is enabled by defining the
+ * macros CFF_T13_SUPPORT to a non-zero value. Note, however, that Type 13 is
+ * proprietary to Adobe and not all clients of this library will be supplied
+ * with the module that supports Type 13. In such cases these clients should
+ * not define the CFF_T13_SUPPORT macro in order to avoid compiler complaints
+ * about a missing t13supp.c file.
+ */
+
+#if CFF_T13_SUPPORT
+#include "t13supp.c"
+#else
+
+#include "t13fail.c"
+
+#endif /* CFF_T13_SUPPORT */
+
+#if CFFREAD_DEBUG
+
+#include <stdio.h>
+
+static void dbstack(cffCtx h) {
+	if (h->stack.cnt == 0) {
+		printf("empty\n");
+	}
+	else {
+		int i;
+		for (i = 0; i < h->stack.cnt; i++) {
+			switch (h->stack.type[i]) {
+				case STK_DOUBLE:
+					printf("[%d]=%.4g ", i, h->stack.array[i].d);
+					break;
+
+				case STK_FIXED:
+					printf("[%d]=%.4g ", i, h->stack.array[i].f / 65536.0);
+					break;
+
+				case STK_LONG:
+					printf("[%d]=%ld ", i, h->stack.array[i].l);
+					break;
+			}
+		}
+		printf("\n");
+	}
+}
+
+static void dbpath(cffCtx h) {
+	printf("--- path\n");
+	printf("flags =%04hx\n", h->path.flags);
+	printf("nStems=%hd\n", h->path.nStems);
+	printf("hAdv  =%g\n", FIX2DBL(h->path.hAdv));
+	printf("vAdv  =%g\n", FIX2DBL(h->path.vAdv));
+	printf("x     =%g\n", FIX2DBL(h->path.x));
+	printf("y     =%g\n", FIX2DBL(h->path.y));
+	printf("left  =%g\n", FIX2DBL(h->path.left));
+	printf("bottom=%g\n", FIX2DBL(h->path.bottom));
+	printf("right =%g\n", FIX2DBL(h->path.right));
+	printf("top   =%g\n", FIX2DBL(h->path.top));
+}
+
+static void dbvecs(cffCtx h, int hex) {
+	int i;
+
+	printf("--- UDV\n");
+	for (i = 0; i < h->font.mm.nAxes; i++) {
+		if (hex) {
+			printf("[%d]=%08lx ", i, h->UDV[i]);
+		}
+		else {
+			printf("[%d]=%.4g ", i, h->UDV[i] / 65536.0);
+		}
+	}
+	printf("\n");
+
+	printf("--- NDV\n");
+	for (i = 0; i < h->font.mm.nAxes; i++) {
+		if (hex) {
+			printf("[%d]=%08lx ", i, h->NDV[i]);
+		}
+		else {
+			printf("[%d]=%.4g ", i, h->NDV[i] / 65536.0);
+		}
+	}
+	printf("\n");
+
+	printf("--- WV\n");
+	for (i = 0; i < h->font.mm.nMasters; i++) {
+		if (hex) {
+			printf("[%d]=%08lx ", i, h->WV[i]);
+		}
+		else {
+			printf("[%d]=%.4g ", i, h->WV[i] / 65536.0);
+		}
+	}
+	printf("\n");
+}
+
+static void dbsetudv(cffCtx h, int u0, int u1, int u2, int u3) {
+	h->UDV[0] = INT2FIX(u0);
+	h->UDV[1] = INT2FIX(u1);
+	h->UDV[2] = INT2FIX(u2);
+	h->UDV[3] = INT2FIX(u3);
+	h->flags |= UDV_SET;
+	h->flags &= ~WV_SET;
+}
+
+/* This function just serves to suppress annoying "defined but not used"
+   compiler messages when debugging */
+static void CDECL dbuse(int arg, ...) {
+	dbuse(0, dbstack, dbpath, dbvecs, dbsetudv);
+}
+
+#endif /* CFFREAD_DEBUG */
