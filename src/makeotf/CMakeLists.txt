@@ -44,10 +44,17 @@ set(MAKEOTFLIB_SOURCE_FILES
 
     source/cffread/cffread.c
 
-    source/typecomp/tc.c
+    source/typecomp/charset.c
     source/typecomp/cs.c
-    source/typecomp/sindex.c
+    source/typecomp/dict.c
     source/typecomp/encoding.c
+    source/typecomp/fdselect.c
+    source/typecomp/parse.c
+    source/typecomp/recode.c
+    source/typecomp/sindex.c
+    source/typecomp/subr.c
+    source/typecomp/t13.c
+    source/typecomp/tc.c
 
     source/pstoken/pstoken.c
     )
