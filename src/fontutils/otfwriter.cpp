@@ -7,101 +7,154 @@
 #include <fstream>
 #include <string>
 #include <cstdlib>
+#include <functional>
 
 namespace fontutils
 {
 
+template <typename F, F f> struct callback_helper;
+template <typename Return, typename Object, typename... Args, Return (Object::*F)(Args...)>
+struct callback_helper<Return (Object::*)(Args...), F>
+{
+    static Return callback(void *ctx, Args ... args)
+    {
+        Object *obj = static_cast<Object*>(ctx);
+        return (obj->*F)(args...);
+    }
+};
+
+template<typename F, F f>
+auto make_callback = &callback_helper<F, f>::callback;
+#define CB(F) make_callback<decltype(&F), &F>
+
 struct FontWriter
 {
-    static void fatal(void *);
-    static void message(void *, int type, char *text);
-    static void *malloc(void *, size_t size);
-    static void *realloc(void *, void *old, size_t size);
-    static void free(void *, void *ptr);
-    static char *psId(void *);
-    static char *psRefill(void *, long *count);
-    static char *cffId(void *);
-    static void cffWrite1(void *, int c);
-    static void cffWriteN(void *, long count, char *ptr);
-    static char *cffSeek(void *, long offset, long *count);
-    static char *cffRefill(void *, long *count);
-    // static void cffSize(void *, long size, int euroAdded);
-    static char *otfId(void *);
-    static void otfWrite1(void *, int c);
-    static void otfWriteN(void *, long count, char *ptr);
-    static long otfTell(void *);
-    static void otfSeek(void *, long offset);
-    static char *otfRefill(void *, long *count);
-    static char *featOpen(void *, char *name, long offset);
-    static char *featRefill(void *, long *count);
-    static void featClose(void *);
-    static void featAddAnonData(void *, char *data, long count, unsigned long tag);
-    static void tmpOpen(void *);
-    static void tmpWriteN(void *, long count, char *ptr);
-    static void tmpRewind(void *);
-    static char *tmpRefill(void *, long *count);
-    static void tmpClose(void *);
-    static char *getFinalGlyphName(void *, char *gname);
-    static char *getSrcGlyphName(void *, char *gname);
-    static char *getUVOverrideName(void *, char *gname);
-    // static void getAliasAndOrder(void *, char *oldName, char **newName, long int *order);
-    static char *uvsOpen(void *, char *name);
-    static char *uvsGetLine(void *,  char *buffer, long *count);
-    static void uvsClose(void *);
+    // Error handling
+    void fatal();
+    void message(int type, char *text);
 
-    FontWriter(std::string const &filename);
+    // Memory allocation
+    void *malloc(size_t size);
+    void *realloc(void *old, size_t size);
+    void free(void *ptr);
+
+    // Postscript input
+    char *psId();
+    char *psRefill(long *count);
+
+    // CFF input
+    char *cffId();
+    char *cffRefill(long *count);
+    char *cffSeek(long offset, long *count);
+
+    // CFF output
+    void cffWrite1(int c);
+    void cffWriteN(long count, char *ptr);
+
+    // OTF input
+    char *otfId();
+    char *otfRefill(long *count);
+
+    // OTF output
+    void otfWrite1(int c);
+    void otfWriteN(long count, char *ptr);
+    void otfSeek(long offset);
+    long otfTell();
+
+    // Feature IO
+    char *featOpen(char *name, long offset);
+    char *featRefill(long *count);
+    void featClose();
+    void featAddAnonData(char *data, long count, unsigned long tag);
+
+    // Temp file IO
+    void tmpOpen();
+    void tmpWriteN(long count, char *ptr);
+    void tmpRewind();
+    char *tmpRefill(long *count);
+    void tmpClose();
+
+    // Feature file identifier conversion
+    char *getFinalGlyphName(char *gname);
+    char *getSrcGlyphName(char *gname);
+    char *getUVOverrideName(char *gname);
+
+    // Unicode variation selector
+    char *uvsOpen(char *name);
+    char *uvsGetLine(char *buffer, long *count);
+    void uvsClose();
+
+    // CMap input
+    char *CMapId();
+    char *CMapRefill(long *count);
+
+    FontWriter(std::string const &filename, std::string const& psdata, std::string const& cmapdata);
     ~FontWriter();
 
     void convert();
 
     hotCtx ctx;
-    std::string psdata, cffdata, otfdata, featuredata;
     std::ofstream out;
-    std::ifstream feature_in;
+    std::string psdata, cffdata, otfdata, featuredata, cmapdata;
+    std::ifstream feature, temp;
 };
 
-FontWriter::FontWriter(std::string const &filename)
-    : out(filename, std::ios::binary)
+FontWriter::FontWriter(std::string const &filename, std::string const& psdata, std::string const& cmapdata)
+    : out(filename, std::ios::binary), psdata(psdata), cmapdata(cmapdata)
 {
-    hotCallbacks callbacks = {
-        this,
-        FontWriter::fatal,
-        FontWriter::message,
-        FontWriter::malloc,
-        FontWriter::realloc,
-        FontWriter::free,
-        FontWriter::psId,
-        FontWriter::psRefill,
-        FontWriter::cffId,
-        FontWriter::cffWrite1,
-        FontWriter::cffWriteN,
-        FontWriter::cffSeek,
-        FontWriter::cffRefill,
-        nullptr, // FontWriter::cffSize,
-        FontWriter::otfId,
-        FontWriter::otfWrite1,
-        FontWriter::otfWriteN,
-        FontWriter::otfTell,
-        FontWriter::otfSeek,
-        FontWriter::otfRefill,
-        FontWriter::featOpen,
-        FontWriter::featRefill,
-        FontWriter::featClose,
-        FontWriter::featAddAnonData,
-        FontWriter::tmpOpen,
-        FontWriter::tmpWriteN,
-        FontWriter::tmpRewind,
-        FontWriter::tmpRefill,
-        FontWriter::tmpClose,
-        FontWriter::getFinalGlyphName,
-        FontWriter::getSrcGlyphName,
-        FontWriter::getUVOverrideName,
-        nullptr, //FontWriter::getAliasAndOrder,
-        FontWriter::uvsOpen,
-        FontWriter::uvsGetLine,
-        FontWriter::uvsClose,
-    };
+    hotCallbacks callbacks;
+    callbacks.ctx = this;
+    callbacks.fatal             = CB(FontWriter::fatal);
+    callbacks.message           = CB(FontWriter::message);
+    callbacks.malloc            = CB(FontWriter::malloc);
+    callbacks.realloc           = CB(FontWriter::realloc);
+    callbacks.free              = CB(FontWriter::free);
+    callbacks.psId              = CB(FontWriter::psId);
+    callbacks.psRefill          = CB(FontWriter::psRefill);
+    callbacks.cffId             = CB(FontWriter::cffId);
+    callbacks.cffWrite1         = CB(FontWriter::cffWrite1);
+    callbacks.cffWriteN         = CB(FontWriter::cffWriteN);
+    callbacks.cffSeek           = CB(FontWriter::cffSeek);
+    callbacks.cffRefill         = CB(FontWriter::cffRefill);
+    callbacks.cffSize           = nullptr;
+    callbacks.otfId             = CB(FontWriter::otfId);
+    callbacks.otfWrite1         = CB(FontWriter::otfWrite1);
+    callbacks.otfWriteN         = CB(FontWriter::otfWriteN);
+    callbacks.otfTell           = CB(FontWriter::otfTell);
+    callbacks.otfSeek           = CB(FontWriter::otfSeek);
+    callbacks.otfRefill         = CB(FontWriter::otfRefill);
+    callbacks.featOpen          = CB(FontWriter::featOpen);
+    callbacks.featRefill        = CB(FontWriter::featRefill);
+    callbacks.featClose         = CB(FontWriter::featClose);
+    callbacks.featAddAnonData   = CB(FontWriter::featAddAnonData);
+    callbacks.tmpOpen           = CB(FontWriter::tmpOpen);
+    callbacks.tmpWriteN         = CB(FontWriter::tmpWriteN);
+    callbacks.tmpRewind         = CB(FontWriter::tmpRewind);
+    callbacks.tmpRefill         = CB(FontWriter::tmpRefill);
+    callbacks.tmpClose          = CB(FontWriter::tmpClose);
+    callbacks.getFinalGlyphName = CB(FontWriter::getFinalGlyphName);
+    callbacks.getSrcGlyphName   = CB(FontWriter::getSrcGlyphName);
+    callbacks.getUVOverrideName = CB(FontWriter::getUVOverrideName);
+    callbacks.getAliasAndOrder  = nullptr;
+    callbacks.uvsOpen           = CB(FontWriter::uvsOpen);
+    callbacks.uvsGetLine        = CB(FontWriter::uvsGetLine);
+    callbacks.uvsClose          = CB(FontWriter::uvsClose);
+
     ctx = hotNew(&callbacks);
+
+    // Set flags before any hot functions are called
+    unsigned long hotConvertFlags = 0;
+    hotConvertFlags |= HOT_ADD_STUB_DSIG;
+    hotSetConvertFlags(ctx, hotConvertFlags);
+
+    // Read fontname
+    hotReadFontOverrides fontOverrides;
+    int psinfo;
+    std::string fontname = hotReadFont(ctx, 0, &psinfo, &fontOverrides);
+
+    hotAddName(ctx, 1, 0, 0, 0, const_cast<char*>("Copyright Info"));
+
+    hotAddCMap(ctx, CB(FontWriter::CMapId), CB(FontWriter::CMapRefill));
 }
 
 FontWriter::~FontWriter()
@@ -111,13 +164,13 @@ FontWriter::~FontWriter()
 
 /* Callbacks */
 
-void FontWriter::fatal(void *ctx)
+void FontWriter::fatal()
 {
-    hotFree(static_cast<FontWriter*>(ctx)->ctx);
+    hotFree(ctx);
     throw std::runtime_error("Fatal error thrown by MakeOTF");
 }
 
-void FontWriter::message(void *, int type, char *text)
+void FontWriter::message(int type, char *text)
 {
     if (type == hotNOTE) {
         std::cout << "MakeOTF note: " << text << std::endl;
@@ -133,199 +186,202 @@ void FontWriter::message(void *, int type, char *text)
     }
 }
 
-void *FontWriter::malloc(void *, size_t size)
+void *FontWriter::malloc(size_t size)
 {
     void *mem = std::malloc(size);
     if (!mem) throw std::bad_alloc();
     return mem;
 }
 
-void *FontWriter::realloc(void *, void *old, size_t size)
+void *FontWriter::realloc(void *old, size_t size)
 {
     void *mem = std::realloc(old, size);
     if (!mem) throw std::bad_alloc();
     return mem;
 }
 
-void FontWriter::free(void *, void *ptr)
+void FontWriter::free(void *ptr)
 {
     std::free(ptr);
 }
 
-char *FontWriter::psId(void *)
+char *FontWriter::psId()
 {
     return const_cast<char*>("psId (Unimplemented)");
 }
 
-char *FontWriter::psRefill(void *ctx, long *count)
+char *FontWriter::psRefill(long *count)
 {
-    FontWriter *writer = static_cast<FontWriter*>(ctx);
-    *count = writer->psdata.size();
-    return const_cast<char*>(writer->psdata.c_str());
+    *count = psdata.size();
+    return const_cast<char*>(psdata.c_str());
 }
 
-char *FontWriter::cffId(void *)
+char *FontWriter::cffId()
 {
     return const_cast<char*>("cffId (Unimplemented)");
 }
 
-void FontWriter::cffWrite1(void *ctx, int c)
+void FontWriter::cffWrite1(int c)
 {
-    FontWriter *writer = static_cast<FontWriter*>(ctx);
     char byte = c;
-    writer->out.write(&byte, 1);
+    out.write(&byte, 1);
 }
 
-void FontWriter::cffWriteN(void *ctx, long count, char *ptr)
+void FontWriter::cffWriteN(long count, char *ptr)
 {
-    FontWriter *writer = static_cast<FontWriter*>(ctx);
-    writer->out.write(ptr, count);
+    out.write(ptr, count);
 }
 
-char *FontWriter::cffSeek(void *ctx, long offset, long *count)
+char *FontWriter::cffSeek(long offset, long *count)
 {
-    FontWriter *writer = static_cast<FontWriter*>(ctx);
-
     // out of bounds
-    if (offset < 0 || size_t(offset) >= writer->cffdata.size())
+    if (offset < 0)
     {
         *count = 0;
         return nullptr;
     }
 
-    *count = writer->cffdata.size() - offset;
-    return &writer->cffdata[0] + offset;
+    *count = 150000;
+    if (size_t(offset + *count) > cffdata.size())
+    {
+        cffdata.resize(offset + *count);
+    }
+    return &cffdata[0] + offset;
 }
 
 // Never called since all data is provided in cffSeek()
-char *FontWriter::cffRefill(void *, long *count)
+char *FontWriter::cffRefill(long *count)
 {
     *count = 0;
     return nullptr;
 }
 
-char *FontWriter::otfId(void *)
+char *FontWriter::otfId()
 {
     return const_cast<char*>("otfId (Unimplemented)");
 }
 
-void FontWriter::otfWrite1(void *ctx, int c)
+void FontWriter::otfWrite1(int c)
 {
-    FontWriter *writer = static_cast<FontWriter*>(ctx);
     char byte = c;
-    writer->out.write(&byte, 1);
+    out.write(&byte, 1);
 }
 
-void FontWriter::otfWriteN(void *ctx, long count, char *ptr)
+void FontWriter::otfWriteN(long count, char *ptr)
 {
-    FontWriter *writer = static_cast<FontWriter*>(ctx);
-    writer->out.write(ptr, count);
+    out.write(ptr, count);
 }
 
-long FontWriter::otfTell(void *ctx)
+long FontWriter::otfTell()
 {
-    FontWriter *writer = static_cast<FontWriter*>(ctx);
-    return writer->out.tellp();
+    return out.tellp();
 }
 
-void FontWriter::otfSeek(void *ctx, long offset)
+void FontWriter::otfSeek(long offset)
 {
-    FontWriter *writer = static_cast<FontWriter*>(ctx);
-    writer->out.seekp(offset);
+    out.seekp(offset);
 }
 
-char *FontWriter::otfRefill(void *ctx, long *count)
+char *FontWriter::otfRefill(long *count)
 {
-    FontWriter *writer = static_cast<FontWriter*>(ctx);
-    *count = writer->otfdata.size();
-    return &writer->otfdata[0];
+    *count = otfdata.size();
+    return &otfdata[0];
 }
 
-char *FontWriter::featOpen(void *ctx, char *name, long offset)
+char *FontWriter::featOpen(char *name, long offset)
 {
-    FontWriter *writer = static_cast<FontWriter*>(ctx);
-
     if (!name) return nullptr;
 
-    writer->feature_in = std::ifstream(name, std::ios::binary);
-    writer->feature_in.seekg(offset);
+    feature = std::ifstream(name, std::ios::binary);
+    feature.seekg(offset);
     return name;
 }
 
-char *FontWriter::featRefill(void *ctx, long *count)
+char *FontWriter::featRefill(long *count)
 {
-    FontWriter *writer = static_cast<FontWriter*>(ctx);
     *count = 8192;
-    writer->featuredata.resize(*count);
-    writer->feature_in.read(&writer->featuredata[0], *count);
-    return &writer->featuredata[0];
+    featuredata.resize(*count);
+    feature.read(&featuredata[0], *count);
+    return &featuredata[0];
 }
 
-void FontWriter::featClose(void *ctx)
+void FontWriter::featClose()
 {
-    FontWriter *writer = static_cast<FontWriter*>(ctx);
-    writer->featuredata.clear();
-    writer->feature_in.close();
+    featuredata.clear();
+    feature.close();
 }
 
-void FontWriter::featAddAnonData(void *, char *data, long count, unsigned long tag)
+void FontWriter::featAddAnonData(char *, long, unsigned long)
 {
-    throw std::runtime_error("unimplemented");
+    throw std::runtime_error("featAddAnonData unimplemented");
 }
 
-void FontWriter::tmpOpen(void *)
+void FontWriter::tmpOpen()
 {
-    throw std::runtime_error("unimplemented");
+    throw std::runtime_error("tmpOpen unimplemented");
 }
 
-void FontWriter::tmpWriteN(void *, long count, char *ptr)
+void FontWriter::tmpWriteN(long, char *)
 {
-    throw std::runtime_error("unimplemented");
+    throw std::runtime_error("tmpWriteN unimplemented");
 }
 
-void FontWriter::tmpRewind(void *)
+void FontWriter::tmpRewind()
 {
-    throw std::runtime_error("unimplemented");
+    throw std::runtime_error("tmpRewind unimplemented");
 }
 
-char *FontWriter::tmpRefill(void *, long *count)
+char *FontWriter::tmpRefill(long *)
 {
-    throw std::runtime_error("unimplemented");
+    throw std::runtime_error("tmpRefill unimplemented");
 }
 
-void FontWriter::tmpClose(void *)
+void FontWriter::tmpClose()
 {
-    throw std::runtime_error("unimplemented");
+    if (temp.is_open()) temp.close();
 }
 
-char *FontWriter::getFinalGlyphName(void *, char *gname)
+char *FontWriter::getFinalGlyphName(char *)
 {
-    throw std::runtime_error("unimplemented");
+    throw std::runtime_error("getFinalGlyphName unimplemented");
 }
 
-char *FontWriter::getSrcGlyphName(void *, char *gname)
+char *FontWriter::getSrcGlyphName(char *)
 {
-    throw std::runtime_error("unimplemented");
+    throw std::runtime_error("getSrcGlyphName unimplemented");
 }
 
-char *FontWriter::getUVOverrideName(void *, char *gname)
+char *FontWriter::getUVOverrideName(char *)
 {
-    throw std::runtime_error("unimplemented");
+    throw std::runtime_error("getUVOverrideName unimplemented");
 }
 
-char *FontWriter::uvsOpen(void *, char *name)
+char *FontWriter::uvsOpen(char *)
 {
-    throw std::runtime_error("unimplemented");
+    throw std::runtime_error("uvsOpen unimplemented");
 }
 
-char *FontWriter::uvsGetLine(void *, char *buffer, long *count)
+char *FontWriter::uvsGetLine(char *, long *)
 {
-    throw std::runtime_error("unimplemented");
+    throw std::runtime_error("uvsGetLine unimplemented");
 }
 
-void FontWriter::uvsClose(void *)
+void FontWriter::uvsClose()
 {
-    throw std::runtime_error("unimplemented");
+    throw std::runtime_error("uvsClose unimplemented");
+}
+
+char *FontWriter::CMapId()
+{
+    return const_cast<char*>("CMapId (unimplemented)");
+}
+
+char *FontWriter::CMapRefill(long *count)
+{
+    std::cout << "CMapRefill called" << std::endl;
+
+    *count = cmapdata.size();
+    return &cmapdata[0];
 }
 
 /* End of callbacks */
@@ -337,16 +393,21 @@ void FontWriter::convert()
 
 void writeOTF(Font const& font, std::string filename)
 {
-    FontWriter writer(filename);
+    std::ifstream psfile("data/cidfont.ps.KR", std::ios::binary);
+    if (!psfile.is_open()) throw std::runtime_error("error opening font file");
+    std::string ps{
+        std::istreambuf_iterator<char>(psfile),
+        std::istreambuf_iterator<char>()
+    };
 
-    unsigned long hotConvertFlags = 0;
-    hotConvertFlags |= HOT_ADD_STUB_DSIG;
+    std::ifstream cmapfile("data/UniSourceHanSansKR-UTF32-H", std::ios::binary);
+    if (!cmapfile.is_open()) throw std::runtime_error("error opening cmap file");
+    std::string cmap{
+        std::istreambuf_iterator<char>(cmapfile),
+        std::istreambuf_iterator<char>()
+    };
 
-    hotSetConvertFlags(writer.ctx, hotConvertFlags);
-    //auto font_name = hotReadFont(ctx, )
-    //hotAddName(ctx, );
-    //hotAddMiscData(ctx, );
-    //hotAddCMap(ctx, );
+    FontWriter writer(filename, ps, cmap);
     writer.convert();
 }
 

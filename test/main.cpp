@@ -14,7 +14,13 @@ int main(int argc, char* argv[])
 
 TEST(write_font, makeotf)
 {
-    fontutils::writeOTF(fontutils::Font{}, "test.otf");
+    try
+    {
+        fontutils::writeOTF(fontutils::Font{}, "test_output.otf");
+    }
+    catch (std::exception const &e) {
+        std::cerr << e.what() << std::endl;
+    }
 }
 
 #if 0
