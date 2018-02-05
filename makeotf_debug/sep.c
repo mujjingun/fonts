@@ -2,7 +2,7 @@
 
 char *curdir()
 {
-	return "/";
+    return ".";
 }
 
 char *sep()

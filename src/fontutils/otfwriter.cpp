@@ -8,6 +8,7 @@
 #include <string>
 #include <cstdlib>
 #include <functional>
+#include <algorithm>
 
 namespace fontutils
 {
@@ -27,6 +28,31 @@ template<typename F, F f>
 auto make_callback = &callback_helper<F, f>::callback;
 #define CB(F) make_callback<decltype(&F), &F>
 
+struct Buffer
+{
+    std::string data = "";
+    size_t pos = 0;
+
+    Buffer(){}
+    Buffer(std::string const &data) : data(data) {}
+
+    char *ptr() { return &data[pos]; }
+    size_t size() const { return data.size(); }
+    size_t left() const { return size() - pos; }
+    char *refill(long *count)
+    {
+        char *buf = ptr();
+        *count = left();
+        pos = size();
+        return buf;
+    }
+    void write(char const *data, size_t count)
+    {
+        std::copy(data, data + count, ptr());
+        pos += count;
+    }
+};
+
 struct FontWriter
 {
     // Error handling
@@ -42,12 +68,11 @@ struct FontWriter
     char *psId();
     char *psRefill(long *count);
 
-    // CFF input
+    // CFF IO
     char *cffId();
     char *cffRefill(long *count);
     char *cffSeek(long offset, long *count);
-
-    // CFF output
+    void cffSize(long size, int euroAdded);
     void cffWrite1(int c);
     void cffWriteN(long count, char *ptr);
 
@@ -94,8 +119,10 @@ struct FontWriter
     void convert();
 
     hotCtx ctx;
+
     std::ofstream out;
-    std::string psdata, cffdata, otfdata, featuredata, cmapdata;
+    std::string psdata, otfdata, featuredata;
+    Buffer cmapdata, cffdata;
     std::ifstream feature, temp;
 };
 
@@ -116,7 +143,7 @@ FontWriter::FontWriter(std::string const &filename, std::string const& psdata, s
     callbacks.cffWriteN         = CB(FontWriter::cffWriteN);
     callbacks.cffSeek           = CB(FontWriter::cffSeek);
     callbacks.cffRefill         = CB(FontWriter::cffRefill);
-    callbacks.cffSize           = nullptr;
+    callbacks.cffSize           = CB(FontWriter::cffSize);
     callbacks.otfId             = CB(FontWriter::otfId);
     callbacks.otfWrite1         = CB(FontWriter::otfWrite1);
     callbacks.otfWriteN         = CB(FontWriter::otfWriteN);
@@ -166,7 +193,6 @@ FontWriter::~FontWriter()
 
 void FontWriter::fatal()
 {
-    hotFree(ctx);
     throw std::runtime_error("Fatal error thrown by MakeOTF");
 }
 
@@ -213,7 +239,7 @@ char *FontWriter::psId()
 char *FontWriter::psRefill(long *count)
 {
     *count = psdata.size();
-    return const_cast<char*>(psdata.c_str());
+    return &psdata[0];
 }
 
 char *FontWriter::cffId()
@@ -224,29 +250,31 @@ char *FontWriter::cffId()
 void FontWriter::cffWrite1(int c)
 {
     char byte = c;
-    out.write(&byte, 1);
+    cffdata.write(&byte, 1);
 }
 
 void FontWriter::cffWriteN(long count, char *ptr)
 {
-    out.write(ptr, count);
+    cffdata.write(ptr, count);
 }
 
 char *FontWriter::cffSeek(long offset, long *count)
 {
     // out of bounds
-    if (offset < 0)
+    if (offset < 0 || size_t(offset) >= cffdata.size())
     {
         *count = 0;
         return nullptr;
     }
 
-    *count = 150000;
-    if (size_t(offset + *count) > cffdata.size())
-    {
-        cffdata.resize(offset + *count);
-    }
-    return &cffdata[0] + offset;
+    cffdata.pos = offset;
+    *count = cffdata.left();
+    return cffdata.ptr();
+}
+
+void FontWriter::cffSize(long size, int /* euroAdded */)
+{
+    cffdata.data.resize(size);
 }
 
 // Never called since all data is provided in cffSeek()
@@ -378,10 +406,7 @@ char *FontWriter::CMapId()
 
 char *FontWriter::CMapRefill(long *count)
 {
-    std::cout << "CMapRefill called" << std::endl;
-
-    *count = cmapdata.size();
-    return &cmapdata[0];
+    return cmapdata.refill(count);
 }
 
 /* End of callbacks */

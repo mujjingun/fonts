@@ -4,12 +4,12 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
 set(MAKEOTFDEBUG_SOURCE_FILES
-    fcdb.c
     file.c
     main.c
     cb.c
     cbpriv.c
     sep.c
+    fcdb.c
     )
 add_executable(${PROJECT_NAME}makeotfdebug ${MAKEOTFDEBUG_SOURCE_FILES})
 target_link_libraries(${PROJECT_NAME}makeotfdebug PRIVATE

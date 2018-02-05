@@ -2,7 +2,7 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
-set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
+set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-unused-parameter -pedantic")
 set(CMAKE_C_FLAGS_DEBUG "-g")
 set(CMAKE_C_FLAGS_RELEASE "-O3")
 set(CMAKE_C_STANDARD 99)
@@ -65,4 +65,14 @@ target_include_directories(${PROJECT_NAME}makeotflib PRIVATE
     )
 target_compile_definitions(${PROJECT_NAME}makeotflib PRIVATE
     HOT_FEAT_SUPPORT=1
+
+    TC_EURO_SUPPORT=1
+    TC_SUBR_SUPPORT=1
+    TC_HINT_CHECK=1
+    TC_T13_SUPPORT=0
+    TC_DEBUG=1
+
+    CFF_T13_SUPPORT=0
+    CFF_DEBUG=1
     )
+target_link_libraries(${PROJECT_NAME}makeotflib PRIVATE m)
