@@ -2,8 +2,9 @@
 #include <gtest/gtest.h>
 #include <pugixml.hpp>
 #include <chrono>
+#include <fstream>
 
-#include "fontutils/otfwriter.hpp"
+#include "fontutils/tables/offsettable.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -16,7 +17,17 @@ TEST(write_font, makeotf)
 {
     try
     {
-        fontutils::writeOTF(fontutils::Font{}, "test_output.otf");
+        std::ifstream file("data/SourceHanSansKR-Regular.otf");
+        fontutils::Buffer buf(std::string{std::istreambuf_iterator<char>(file),
+                                          std::istreambuf_iterator<char>()});
+
+        fontutils::OffsetTable table;
+        table.parse(buf);
+
+        std::ofstream otf("data/testout.otf");
+        auto outbuf = table.compile();
+        outbuf.seek(0);
+        otf.write(outbuf.ptr(), outbuf.size());
     }
     catch (std::exception const &e) {
         std::cerr << e.what() << std::endl;

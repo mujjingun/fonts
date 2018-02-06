@@ -15,6 +15,7 @@ struct Font
 };
 
 Font parse_font(std::string ttx_filename);
+Font parse_otf(std::string otf_filename);
 
 }
 

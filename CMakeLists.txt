@@ -71,5 +71,3 @@ if(BUILD_TESTING)
     add_test(${PROJECT_NAME}_cmake_test ${PROJECT_NAME}_test)
 
 endif()
-
-add_subdirectory(makeotf_debug)

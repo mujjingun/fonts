@@ -6,6 +6,9 @@
 #include "subroutines.hpp"
 
 #include <iostream>
+#include <fstream>
+
+#include "tables/offsettable.hpp"
 
 namespace fontutils
 {
@@ -26,7 +29,6 @@ std::unordered_map<std::string, char32_t> parse_cmap(pugi::xml_node cmap_table)
 
 Font parse_font(std::string ttx_filename)
 {
-    // TODO: asynchronously load file
     pugi::xml_document doc;
     pugi::xml_parse_result result = doc.load_file(ttx_filename.c_str());
     if (result.status != pugi::status_ok)
@@ -42,7 +44,7 @@ Font parse_font(std::string ttx_filename)
         }
     }
 
-    const auto gpos = body.child("GPOS");
+    //const auto gpos = body.child("GPOS");
 
     const auto cmap = parse_cmap(body.child("cmap"));
 
@@ -81,6 +83,19 @@ Font parse_font(std::string ttx_filename)
     }
 
     return font;
+}
+
+Font parse_otf(std::string otf_filename)
+{
+    std::ifstream file(otf_filename);
+    Buffer buf(std::string{std::istreambuf_iterator<char>(file),
+                           std::istreambuf_iterator<char>()});
+
+    OffsetTable table;
+    table.parse(buf);
+
+    Font f;
+    return f;
 }
 
 } // namespace fontutils
