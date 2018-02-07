@@ -1,17 +1,44 @@
 #include "headtable.hpp"
 
 #include <chrono>
+#include <ctime>
 
 namespace fontutils
 {
+
+static time_t beginning_of_time()
+{
+    std::tm pt;
+    pt.tm_year = 1904;
+    pt.tm_mon = 0;
+    pt.tm_mday = 1;
+    pt.tm_hour = 0;
+    pt.tm_min = 0;
+    pt.tm_sec = 0;
+    std::time_t ret = std::mktime(&pt);
+
+    std::tm pgt = *std::gmtime(&ret);
+    std::tm plt = *std::localtime(&ret);
+
+    plt.tm_year -= pgt.tm_year - plt.tm_year;
+    plt.tm_mon -= pgt.tm_mon - plt.tm_mon;
+    plt.tm_mday -= pgt.tm_mday - plt.tm_mday;
+    plt.tm_hour -= pgt.tm_hour - plt.tm_hour;
+    plt.tm_min -= pgt.tm_min - plt.tm_min;
+    plt.tm_sec -= pgt.tm_sec - plt.tm_sec;
+
+    return std::mktime(&plt);
+}
 
 HeadTable::HeadTable()
 {
     id = "head";
 
-    // FIXME
-    auto now = std::chrono::system_clock::now();
-    auto time = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+    using namespace std::chrono;
+
+    auto now = system_clock::now();
+    auto start = system_clock::from_time_t(beginning_of_time());
+    auto time = duration_cast<seconds>(now - start).count();
     created = time;
     modified = time;
 
@@ -20,17 +47,20 @@ HeadTable::HeadTable()
 
 void HeadTable::parse(Buffer &dis)
 {
-    auto major_version = dis.read<uint16_t>();
-    if (major_version != 1)
-        throw std::runtime_error("Unrecognized head table major version");
-    auto minor_version = dis.read<uint16_t>();
-    if (minor_version != 0)
-        throw std::runtime_error("Unrecognized head table minor version");
-    dis.read<Fixed>();
-    adjusted_checksum = dis.read<uint32_t>();
-    auto magic_number = dis.read<uint32_t>();
-    if (magic_number != 0x5F0F3CF5)
+    version = dis.read<Fixed>();
+    if (version != Fixed(0x00010000))
+        throw std::runtime_error("Unrecognized head table version");
+
+    // fontRevision
+    font_revision = dis.read<Fixed>();
+
+    // checksumAdjustment
+    dis.read<uint32_t>();
+
+    // magicNumber
+    if (dis.read<uint32_t>() != 0x5F0F3CF5)
         throw std::runtime_error("Invalid magic number");
+
     flags = dis.read<uint16_t>();
     units_per_em = dis.read<uint16_t>();
     created = dis.read<int64_t>();
@@ -59,8 +89,8 @@ Buffer HeadTable::compile() const
     // fontRevision
     buf.add<Fixed>(Fixed(1 << 16));
 
-    // Zero on the first run, set on the second
-    buf.add<uint32_t>(adjusted_checksum);
+    // Set to zero, directly written to the memory afterwards
+    buf.add<uint32_t>(0);
 
     // magicNumber
     buf.add<uint32_t>(0x5F0F3CF5);
@@ -96,9 +126,6 @@ Buffer HeadTable::compile() const
 
     // glyphDataFormat (current)
     buf.add<uint16_t>(0);
-
-    // Pad to 4-byte boundary
-    buf.pad();
 
     return buf;
 }

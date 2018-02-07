@@ -156,13 +156,16 @@ inline void to_big_endian(char *buf, Tag t)
 
 class Buffer
 {
-    std::string data = "";
+    std::string arr = "";
     size_t pos = 0;
 
 public:
     Buffer() = default;
     explicit Buffer(std::string const& data)
-        : data(data)
+        : arr(data)
+    {}
+    explicit Buffer(std::string && data)
+        : arr(std::move(data))
     {}
     Buffer(Buffer const& buffer) = delete;
     Buffer(Buffer && buffer) = default;
@@ -179,7 +182,7 @@ public:
 
         for (auto i = 0u; i < count; ++i)
         {
-            to_big_endian<T>(&data[pos + i * sizeof(T)], ptr[i]);
+            to_big_endian<T>(&arr[pos + i * sizeof(T)], ptr[i]);
         }
 
         pos += n_bytes;
@@ -191,12 +194,12 @@ public:
     void add(T const *ptr, size_t count)
     {
         size_t n_bytes = sizeof(T) * count;
-        size_t orig_size = data.size();
-        data.resize(orig_size + n_bytes);
+        size_t orig_size = arr.size();
+        arr.resize(orig_size + n_bytes);
 
         for (auto i = 0u; i < count; ++i)
         {
-            to_big_endian<T>(&data[orig_size + i * sizeof(T)], ptr[i]);
+            to_big_endian<T>(&arr[orig_size + i * sizeof(T)], ptr[i]);
         }
     }
 
@@ -210,15 +213,15 @@ public:
     /// Append another buffer to the end of this one
     void append(Buffer const &buf)
     {
-        data.append(buf.data);
+        arr.append(buf.arr);
     }
 
     /// Pad to 4-byte boundary
     void pad()
     {
-        size_t n = data.size() % 4;
+        size_t n = arr.size() % 4;
         if (n > 0) {
-            data.resize(data.size() + (4 - n));
+            arr.resize(arr.size() + (4 - n));
         }
     }
 
@@ -234,7 +237,7 @@ public:
 
         for (auto i = 0u; i < count; ++i)
         {
-            dest[i] = to_machine_endian<T>(&data[pos + i * sizeof(T)]);
+            dest[i] = to_machine_endian<T>(&arr[pos + i * sizeof(T)]);
         }
 
         pos += n_bytes;
@@ -250,11 +253,13 @@ public:
     }
 
     /// Set current offset
-    void seek(size_t off)
+    size_t seek(size_t off)
     {
         if (off > size())
             throw std::range_error("Invalid seek position.");
+        size_t orig_pos = pos;
         pos = off;
+        return orig_pos;
     }
 
     /// Get current offset
@@ -265,12 +270,12 @@ public:
 
     size_t size() const
     {
-        return data.size();
+        return arr.size();
     }
 
-    char* ptr()
+    char* data()
     {
-        return &data[pos];
+        return &arr[0];
     }
 };
 

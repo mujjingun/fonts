@@ -135,8 +135,6 @@ Buffer OS2Table::compile() const
     else
         throw std::runtime_error("Unsupported version of the OS/2 table.");
 
-    buf.pad();
-
     return buf;
 }
 

@@ -8,6 +8,39 @@ NameTable::NameTable()
     id = "name";
 }
 
+void NameTable::parse(Buffer &dis)
+{
+    size_t beginning = dis.tell();
+
+    format = dis.read<uint16_t>();
+    if (format == 0)
+    {
+        auto count = dis.read<uint16_t>();
+        size_t offset = dis.read<uint16_t>();
+        for (auto i = 0u; i < count; ++i)
+        {
+            NameRecord record;
+            record.platform_id = dis.read<uint16_t>();
+            record.encoding_id = dis.read<uint16_t>();
+            record.language_id = dis.read<uint16_t>();
+            record.name_id = dis.read<uint16_t>();
+
+            size_t len = dis.read<uint16_t>();
+            size_t stroff = dis.read<uint16_t>();
+
+            record.str.resize(len);
+
+            auto orig_pos = dis.seek(beginning + offset + stroff);
+            dis.read<char>(&record.str[0], len);
+            dis.seek(orig_pos);
+
+            records.push_back(record);
+        }
+    }
+    else
+        throw std::runtime_error("Unrecognized name table format");
+}
+
 Buffer NameTable::compile() const
 {
     Buffer buf;
@@ -41,43 +74,7 @@ Buffer NameTable::compile() const
     else
         throw std::runtime_error("Unrecognized name table format");
 
-    buf.pad();
-
     return buf;
-}
-
-void NameTable::parse(Buffer &dis)
-{
-    size_t beginning = dis.tell();
-
-    format = dis.read<uint16_t>();
-    if (format == 0)
-    {
-        auto count = dis.read<uint16_t>();
-        size_t offset = dis.read<uint16_t>();
-        for (auto i = 0u; i < count; ++i)
-        {
-            NameRecord record;
-            record.platform_id = dis.read<uint16_t>();
-            record.encoding_id = dis.read<uint16_t>();
-            record.language_id = dis.read<uint16_t>();
-            record.name_id = dis.read<uint16_t>();
-
-            size_t len = dis.read<uint16_t>();
-            size_t stroff = dis.read<uint16_t>();
-
-            record.str.resize(len);
-
-            auto orig_pos = dis.tell();
-            dis.seek(beginning + offset + stroff);
-            dis.read<char>(&record.str[0], len);
-            dis.seek(orig_pos);
-
-            records.push_back(record);
-        }
-    }
-    else
-        throw std::runtime_error("Unrecognized name table format");
 }
 
 }

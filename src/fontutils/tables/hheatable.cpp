@@ -67,8 +67,6 @@ Buffer HheaTable::compile() const
     buf.add<int16_t>(metric_data_format);
     buf.add<uint16_t>(num_h_metrics);
 
-    buf.pad();
-
     return buf;
 }
 

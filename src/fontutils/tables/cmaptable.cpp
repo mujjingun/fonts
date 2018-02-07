@@ -26,8 +26,7 @@ static std::unique_ptr<CmapSubtable> make_subtable(
         uint16_t platform_id,
         uint16_t encoding_id)
 {
-    auto orig_pos = dis.tell();
-    dis.seek(off);
+    auto orig_pos = dis.seek(off);
     auto format = dis.read<uint16_t>();
 
     std::unique_ptr<CmapSubtable> table;
@@ -102,6 +101,7 @@ Buffer CmapTable::compile() const
     for (auto const& sub : subtables)
     {
         Buffer sub_buf = sub->compile();
+        sub_buf.pad();
 
         offsets.push_back(off);
         off += sub_buf.size();
@@ -119,8 +119,6 @@ Buffer CmapTable::compile() const
 
     // append subtables
     buf.append(subtables_buf);
-
-    buf.pad();
 
     return buf;
 }

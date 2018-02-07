@@ -35,8 +35,6 @@ Buffer MaxpTable::compile() const
         throw std::runtime_error("CFF fonts must have version 0.5 maxp table");
     }
 
-    buf.pad();
-
     return buf;
 }
 

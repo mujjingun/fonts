@@ -43,8 +43,7 @@ static std::unique_ptr<OTFTable> make_table(
     else
         table = std::make_unique<GenericTable>(name, length);
 
-    auto orig_pos = dis.tell();
-    dis.seek(offset);
+    auto orig_pos = dis.seek(offset);
     table->parse(dis);
     dis.seek(orig_pos);
 
@@ -53,6 +52,8 @@ static std::unique_ptr<OTFTable> make_table(
 
 void OffsetTable::parse(Buffer &dis)
 {
+    auto beginning = dis.tell();
+
     auto sfnt_version = dis.read<uint32_t>();
     if (sfnt_version != 0x4F54544F)
         throw std::runtime_error("Not a CFF font");
@@ -70,6 +71,8 @@ void OffsetTable::parse(Buffer &dis)
         size_t length;
     };
     std::map<std::string, TableInfo> tables_pos;
+    uint32_t entire_checksum = 0;
+    uint32_t checksum_adjustment;
     for (auto i = 0u; i < num_tables; ++i)
     {
         Tag tag = dis.read<Tag>();
@@ -90,9 +93,11 @@ void OffsetTable::parse(Buffer &dis)
         if (table_name == "head")
         {
             dis.seek(offset + 8);
-            auto checksum_adjustment = dis.read<uint32_t>();
+            checksum_adjustment = dis.read<uint32_t>();
             calc_checksum -= checksum_adjustment;
         }
+
+        entire_checksum += calc_checksum;
 
         // Verify checksum
         if (checksum != calc_checksum)
@@ -104,6 +109,14 @@ void OffsetTable::parse(Buffer &dis)
             throw std::runtime_error(oss.str());
         }
         dis.seek(orig_pos);
+    }
+
+    // Validate checksumAdjustment
+    auto length = dis.seek(beginning) - beginning;
+    entire_checksum += calculate_checksum(dis, length);
+    if (entire_checksum + checksum_adjustment != 0xB1B0AFBA)
+    {
+        throw std::runtime_error("Invalid font checksum.");
     }
 
     const char *required_tables[] = {
@@ -167,6 +180,7 @@ Buffer OffsetTable::compile() const
 
     Buffer tables_data;
     size_t offset_table_size = 12 + 16 * tables.size();
+    uint32_t entire_checksum = 0;
     size_t checksum_adj_pos;
     // Table Records
     for (auto const& pp : tables)
@@ -177,21 +191,27 @@ Buffer OffsetTable::compile() const
         buf.add<char>(table_name.data(), 4);
 
         Buffer table_buf = table->compile();
+        auto length = table_buf.size();
+        table_buf.pad();
 
         // checksum
-        buf.add<uint32_t>(calculate_checksum(table_buf, table_buf.size()));
+        uint32_t checksum = calculate_checksum(table_buf, length);
+        buf.add<uint32_t>(checksum);
+
+        entire_checksum += checksum;
 
         // offset
         auto off = offset_table_size + tables_data.size();
-        if (table_name == "head")
-        {
-            checksum_adj_pos = off + 8;
-        }
         buf.add<uint32_t>(off);
-        tables_data.append(table_buf);
+
+        // Store position of checksumAdjustment
+        if (table_name == "head")
+            checksum_adj_pos = off + 8;
 
         // length
-        buf.add<uint32_t>(table_buf.size());
+        buf.add<uint32_t>(length);
+
+        tables_data.append(table_buf);
     }
 
     buf.append(tables_data);
@@ -199,9 +219,9 @@ Buffer OffsetTable::compile() const
 
     // set checksumAdjustment value
     buf.seek(0);
-    auto entire_checksum = calculate_checksum(buf, buf.size());
+    entire_checksum += calculate_checksum(buf, offset_table_size);
     buf.seek(checksum_adj_pos);
-    auto checksum_adj = uint32_t(0xB1B0AFBA) - entire_checksum;
+    uint32_t checksum_adj = uint32_t(0xB1B0AFBA) - entire_checksum;
     buf.write<uint32_t>(&checksum_adj, 1);
 
     return buf;

@@ -18,8 +18,6 @@ public:
 
     uint16_t units_per_em;
 
-    uint32_t adjusted_checksum = 0;
-
     uint16_t mac_style;
     uint16_t lowest_PPEM;
     int16_t font_direction_hint;

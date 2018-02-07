@@ -33,7 +33,6 @@ Buffer PostTable::compile() const
     buf.add<uint32_t>(max_mem_type_42);
     buf.add<uint32_t>(min_mem_type_1);
     buf.add<uint32_t>(max_mem_type_1);
-    buf.pad();
     return buf;
 }
 

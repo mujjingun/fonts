@@ -17,10 +17,7 @@ void HmtxTable::parse(Buffer &dis)
         metric.lsb = dis.read<int16_t>();
     }
 
-    for (auto &lsb : lsbs)
-    {
-        lsb = dis.read<int16_t>();
-    }
+    dis.read<int16_t>(lsbs.data(), lsbs.size());
 }
 
 Buffer HmtxTable::compile() const
@@ -32,12 +29,7 @@ Buffer HmtxTable::compile() const
         buf.add<int16_t>(metric.lsb);
     }
 
-    for (auto const &lsb : lsbs)
-    {
-        buf.add<int16_t>(lsb);
-    }
-
-    buf.pad();
+    buf.add(lsbs.data(), lsbs.size());
 
     return buf;
 }

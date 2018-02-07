@@ -16,9 +16,7 @@ void GenericTable::parse(Buffer &dis)
 
 Buffer GenericTable::compile() const
 {
-    Buffer buf(data);
-    buf.pad();
-    return buf;
+    return Buffer(data);
 }
 
 }

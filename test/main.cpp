@@ -18,6 +18,7 @@ TEST(write_font, makeotf)
     try
     {
         std::ifstream file("data/SourceHanSansKR-Regular.otf");
+        //std::ifstream file("data/testout.otf");
         fontutils::Buffer buf(std::string{std::istreambuf_iterator<char>(file),
                                           std::istreambuf_iterator<char>()});
 
@@ -26,8 +27,7 @@ TEST(write_font, makeotf)
 
         std::ofstream otf("data/testout.otf");
         auto outbuf = table.compile();
-        outbuf.seek(0);
-        otf.write(outbuf.ptr(), outbuf.size());
+        otf.write(outbuf.data(), outbuf.size());
     }
     catch (std::exception const &e) {
         std::cerr << e.what() << std::endl;
