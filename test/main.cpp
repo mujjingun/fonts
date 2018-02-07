@@ -5,87 +5,12 @@
 #include <fstream>
 
 #include "fontutils/tables/offsettable.hpp"
-#include "fontutils/tables/unicodemap.hpp"
 
 int main(int argc, char* argv[])
 {
     ::testing::InitGoogleTest(&argc, argv);
 
     return RUN_ALL_TESTS();
-}
-
-TEST(unicodemap, fontutils)
-{
-    using namespace fontutils;
-
-    UnicodeMap<int> map;
-
-    for (int i = 0; i < 1000; ++i)
-        ASSERT_FALSE(map.is_set(i));
-
-    map.set(5, 2000);
-
-    for (int i = 0; i <= 4; ++i)
-        ASSERT_FALSE(map.is_set(i));
-    ASSERT_TRUE(map.is_set(5));
-    ASSERT_EQ(map[5], 2000);
-    for (int i = 6; i < 1000; ++i)
-        ASSERT_FALSE(map.is_set(i));
-
-    map.set(5, 3000);
-
-    for (int i = 0; i <= 4; ++i)
-        ASSERT_FALSE(map.is_set(i));
-    ASSERT_TRUE(map.is_set(5));
-    ASSERT_EQ(map[5], 3000);
-    for (int i = 6; i < 1000; ++i)
-        ASSERT_FALSE(map.is_set(i));
-
-    map.set_range(3, 3000, -20);
-
-    for (int i = 0; i <= 2; ++i)
-        ASSERT_FALSE(map.is_set(i));
-    for (int i = 3; i <= 2999; ++i)
-    {
-        ASSERT_TRUE(map.is_set(i));
-        ASSERT_EQ(map[i], -20);
-    }
-    for (int i = 3000; i < 10000; ++i)
-        ASSERT_FALSE(map.is_set(i));
-
-    map.set_range(3, 2000, 32000);
-
-    for (int i = 0; i <= 2; ++i)
-        ASSERT_FALSE(map.is_set(i));
-    for (int i = 3; i <= 1999; ++i)
-    {
-        ASSERT_TRUE(map.is_set(i));
-        ASSERT_EQ(map[i], 32000);
-    }
-    for (int i = 2000; i <= 2999; ++i)
-    {
-        ASSERT_TRUE(map.is_set(i));
-        ASSERT_EQ(map[i], -20);
-    }
-    for (int i = 3000; i < 10000; ++i)
-        ASSERT_FALSE(map.is_set(i));
-
-    map.set_range(1500, 3000, 15300);
-
-    for (int i = 0; i <= 2; ++i)
-        ASSERT_FALSE(map.is_set(i));
-    for (int i = 3; i <= 1499; ++i)
-    {
-        ASSERT_TRUE(map.is_set(i));
-        ASSERT_EQ(map[i], 32000);
-    }
-    for (int i = 1500; i <= 2999; ++i)
-    {
-        ASSERT_TRUE(map.is_set(i));
-        ASSERT_EQ(map[i], 15300);
-    }
-    for (int i = 3000; i < 10000; ++i)
-        ASSERT_FALSE(map.is_set(i));
 }
 
 TEST(write_font, fontutils)

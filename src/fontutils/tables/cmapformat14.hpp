@@ -2,7 +2,9 @@
 #define TABLES_CMAP_FORMAT_14_HPP
 
 #include "cmapsubtable.hpp"
-#include "unicodemap.hpp"
+
+#include <map>
+#include <vector>
 
 namespace fontutils
 {
@@ -10,9 +12,24 @@ namespace fontutils
 class CmapFormat14Subtable : public CmapSubtable
 {
 public:
-    // variation selector -> (unicode -> gid[]) mapping
-    // gid == -1 if default
-    std::map<char32_t, UnicodeMap<int32_t>> uvsmap;
+    struct DefaultUVSRange
+    {
+        char32_t start_val;
+        int count;
+    };
+    using DefaultUVSTable = std::vector<DefaultUVSRange>;
+    struct UVSMapping
+    {
+        char32_t unicode;
+        uint16_t gid;
+    };
+    using UVSMappingTable = std::vector<UVSMapping>;
+    struct UVS
+    {
+        DefaultUVSTable dflt;
+        UVSMappingTable special;
+    };
+    std::map<char32_t, UVS> map;
 
 public:
     CmapFormat14Subtable(uint16_t platform_id, uint16_t encoding_id);
