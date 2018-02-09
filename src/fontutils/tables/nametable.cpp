@@ -10,6 +10,8 @@ NameTable::NameTable()
 
 void NameTable::parse(Buffer &dis)
 {
+    std::cout << "Parsing 'name'... " << std::endl;
+
     size_t beginning = dis.tell();
 
     format = dis.read<uint16_t>();

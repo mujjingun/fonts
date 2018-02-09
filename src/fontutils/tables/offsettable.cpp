@@ -9,6 +9,7 @@
 #include "os2table.hpp"
 #include "posttable.hpp"
 #include "generictable.hpp"
+#include "cfftable.hpp"
 
 #include <map>
 #include <sstream>
@@ -40,6 +41,8 @@ static std::unique_ptr<OTFTable> make_table(
         table = std::make_unique<OS2Table>();
     else if (name == "post")
         table = std::make_unique<PostTable>();
+    else if (name == "CFF ")
+        table = std::make_unique<CFFTable>();
     else
         table = std::make_unique<GenericTable>(name, length);
 

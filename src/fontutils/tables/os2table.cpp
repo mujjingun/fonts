@@ -10,6 +10,8 @@ OS2Table::OS2Table()
 
 void OS2Table::parse(Buffer &dis)
 {
+    std::cout << "Parsing 'OS/2'... " << std::endl;
+
     version = dis.read<uint16_t>();
     if (version == 3 || version == 4)
     {

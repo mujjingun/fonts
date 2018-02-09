@@ -11,6 +11,8 @@ GenericTable::GenericTable(std::string tag, size_t length)
 
 void GenericTable::parse(Buffer &dis)
 {
+    std::cout << "Unsupported table '" << id << "'... " << std::endl;
+
     dis.read<char>(&data[0], data.size());
 }
 

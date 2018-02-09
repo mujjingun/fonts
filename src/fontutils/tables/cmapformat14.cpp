@@ -21,10 +21,7 @@ void CmapFormat14Subtable::parse(Buffer &dis)
     auto num_uvs_selectors = dis.read<uint32_t>();
     for (auto i = 0u; i < num_uvs_selectors; ++i)
     {
-        auto vs0 = dis.read<uint8_t>() & 0xff;
-        auto vs1 = dis.read<uint8_t>() & 0xff;
-        auto vs2 = dis.read<uint8_t>() & 0xff;
-        char32_t var_selector = vs0 << 16 | vs1 << 8 | vs2;
+        char32_t var_selector = dis.read_nbytes(3);
 
         UVS uvs;
 
@@ -35,10 +32,7 @@ void CmapFormat14Subtable::parse(Buffer &dis)
             auto num_ranges = dis.read<uint32_t>();
             for (auto i = 0u; i < num_ranges; ++i)
             {
-                auto sv0 = dis.read<uint8_t>() & 0xff;
-                auto sv1 = dis.read<uint8_t>() & 0xff;
-                auto sv2 = dis.read<uint8_t>() & 0xff;
-                char32_t start_val = sv0 << 16 | sv1 << 8 | sv2;
+                char32_t start_val = dis.read_nbytes(3);
                 int count = dis.read<uint8_t>() + 1;
                 uvs.dflt.push_back({start_val, count});
             }
@@ -52,10 +46,7 @@ void CmapFormat14Subtable::parse(Buffer &dis)
             auto num_uvs_mappings = dis.read<uint32_t>();
             for (auto i = 0u; i < num_uvs_mappings; ++i)
             {
-                auto un0 = dis.read<uint8_t>() & 0xff;
-                auto un1 = dis.read<uint8_t>() & 0xff;
-                auto un2 = dis.read<uint8_t>() & 0xff;
-                char32_t unicode_value = un0 << 16 | un1 << 8 | un2;
+                char32_t unicode_value = dis.read_nbytes(3);
                 auto gid = dis.read<uint16_t>();
                 uvs.special.push_back({unicode_value, gid});
             }
@@ -92,9 +83,7 @@ Buffer CmapFormat14Subtable::compile() const
             uvs_buf.add<uint32_t>(dflt_size);
             for (auto const& range : uvs.dflt)
             {
-                uvs_buf.add<uint8_t>((range.start_val & 0xff0000) >> 16);
-                uvs_buf.add<uint8_t>((range.start_val & 0x00ff00) >> 8);
-                uvs_buf.add<uint8_t>((range.start_val & 0x0000ff));
+                uvs_buf.add_nbytes(3, range.start_val);
                 uvs_buf.add<uint8_t>(range.count - 1);
             }
         }
@@ -105,9 +94,7 @@ Buffer CmapFormat14Subtable::compile() const
             uvs_buf.add<uint32_t>(special_size);
             for (auto const& mapping : uvs.special)
             {
-                uvs_buf.add<uint8_t>((mapping.unicode & 0xff0000) >> 16);
-                uvs_buf.add<uint8_t>((mapping.unicode & 0x00ff00) >> 8);
-                uvs_buf.add<uint8_t>((mapping.unicode & 0x0000ff));
+                uvs_buf.add_nbytes(3, mapping.unicode);
                 uvs_buf.add<uint16_t>(mapping.gid);
             }
         }
@@ -121,9 +108,7 @@ Buffer CmapFormat14Subtable::compile() const
     for (auto const& selector : map)
     {
         // varSelector
-        buf.add<uint8_t>((selector.first & 0xff0000) >> 16);
-        buf.add<uint8_t>((selector.first & 0x00ff00) >> 8);
-        buf.add<uint8_t>((selector.first & 0x0000ff));
+        buf.add_nbytes(3, selector.first);
 
         auto offsets = offset_map[selector.first];
 

@@ -15,6 +15,7 @@ set(UTILS_SOURCE_FILES
     parser.cpp
     otfwriter.cpp
 
+    tables/buffer.cpp
     tables/otftable.cpp
     tables/headtable.cpp
     tables/cmaptable.cpp
@@ -30,6 +31,7 @@ set(UTILS_SOURCE_FILES
     tables/posttable.cpp
     tables/offsettable.cpp
     tables/generictable.cpp
+    tables/cfftable.cpp
     )
 add_library(${PROJECT_NAME}utils STATIC ${UTILS_SOURCE_FILES})
 target_link_libraries(${PROJECT_NAME}utils PRIVATE)

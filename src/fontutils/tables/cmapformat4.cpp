@@ -104,7 +104,6 @@ void CmapFormat4Subtable::parse(Buffer &dis)
 
 Buffer CmapFormat4Subtable::compile() const
 {
-    // TODO
     Buffer buf;
 
     // Format 4

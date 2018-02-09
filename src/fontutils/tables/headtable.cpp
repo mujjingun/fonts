@@ -6,28 +6,10 @@
 namespace fontutils
 {
 
-static time_t beginning_of_time()
+static time_t timestamp()
 {
-    std::tm pt;
-    pt.tm_year = 1904;
-    pt.tm_mon = 0;
-    pt.tm_mday = 1;
-    pt.tm_hour = 0;
-    pt.tm_min = 0;
-    pt.tm_sec = 0;
-    std::time_t ret = std::mktime(&pt);
-
-    std::tm pgt = *std::gmtime(&ret);
-    std::tm plt = *std::localtime(&ret);
-
-    plt.tm_year -= pgt.tm_year - plt.tm_year;
-    plt.tm_mon -= pgt.tm_mon - plt.tm_mon;
-    plt.tm_mday -= pgt.tm_mday - plt.tm_mday;
-    plt.tm_hour -= pgt.tm_hour - plt.tm_hour;
-    plt.tm_min -= pgt.tm_min - plt.tm_min;
-    plt.tm_sec -= pgt.tm_sec - plt.tm_sec;
-
-    return std::mktime(&plt);
+    std::time_t now = std::time(0);
+    return now + 2082844800;
 }
 
 HeadTable::HeadTable()
@@ -36,9 +18,7 @@ HeadTable::HeadTable()
 
     using namespace std::chrono;
 
-    auto now = system_clock::now();
-    auto start = system_clock::from_time_t(beginning_of_time());
-    auto time = duration_cast<seconds>(now - start).count();
+    int64_t time = timestamp();
     created = time;
     modified = time;
 
@@ -47,6 +27,8 @@ HeadTable::HeadTable()
 
 void HeadTable::parse(Buffer &dis)
 {
+    std::cout << "Parsing 'head'... " << std::endl;
+
     version = dis.read<Fixed>();
     if (version != Fixed(0x00010000))
         throw std::runtime_error("Unrecognized head table version");
@@ -64,7 +46,8 @@ void HeadTable::parse(Buffer &dis)
     flags = dis.read<uint16_t>();
     units_per_em = dis.read<uint16_t>();
     created = dis.read<int64_t>();
-    modified = dis.read<int64_t>();
+    // modified
+    dis.read<int64_t>();
     xmin = dis.read<int16_t>();
     ymin = dis.read<int16_t>();
     xmax = dis.read<int16_t>();

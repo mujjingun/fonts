@@ -4,13 +4,15 @@ namespace fontutils
 {
 
 HmtxTable::HmtxTable(size_t num_glyphs, size_t num_h_metrics)
-    : metrics(num_glyphs), lsbs(num_glyphs - num_h_metrics)
+    : metrics(num_h_metrics), lsbs(num_glyphs - num_h_metrics)
 {
     id = "hmtx";
 }
 
 void HmtxTable::parse(Buffer &dis)
 {
+    std::cout << "Parsing 'hmtx'... " << std::endl;
+
     for (auto &metric : metrics)
     {
         metric.advance_width = dis.read<uint16_t>();

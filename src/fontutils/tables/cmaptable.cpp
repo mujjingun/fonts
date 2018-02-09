@@ -58,6 +58,8 @@ static std::unique_ptr<CmapSubtable> make_subtable(
 
 void CmapTable::parse(Buffer &dis)
 {
+    std::cout << "Parsing 'cmap'... " << std::endl;
+
     auto beginning = dis.tell();
 
     auto version = dis.read<uint16_t>();

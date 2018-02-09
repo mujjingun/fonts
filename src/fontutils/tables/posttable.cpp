@@ -10,6 +10,8 @@ PostTable::PostTable()
 
 void PostTable::parse(Buffer &dis)
 {
+    std::cout << "Parsing 'post'... " << std::endl;
+
     version = dis.read<Fixed>();
     italic_angle = dis.read<Fixed>();
     underline_position = dis.read<int16_t>();
