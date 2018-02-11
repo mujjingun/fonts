@@ -125,7 +125,7 @@ Buffer CmapFormat4Subtable::compile() const
     int offset = uint16_t(cmap.begin()->second - begin);
     for (auto it = std::next(cmap.begin());; ++it)
     {
-        int code, gid;
+        int code = -1, gid = -1;
 
         if (it != cmap.end())
         {

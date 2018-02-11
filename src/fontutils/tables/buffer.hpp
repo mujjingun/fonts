@@ -109,10 +109,10 @@ public:
     /// Pad to 4-byte boundary
     void pad();
 
-    /// Read items from the buffer staring from the
+    /// Peek items from the buffer staring from the
     /// current position
     template<typename T>
-    void read(T *dest, size_t count)
+    void peek(T *dest, size_t count)
     {
         size_t n_bytes = sizeof(T) * count;
 
@@ -123,8 +123,24 @@ public:
         {
             dest[i] = to_machine_endian<T>(&arr[pos + i * sizeof(T)]);
         }
+    }
 
-        pos += n_bytes;
+    /// Convenience function for peeking 1 item
+    template<typename T>
+    T peek()
+    {
+        T t;
+        peek(&t, 1);
+        return t;
+    }
+
+    /// Read items from the buffer staring from the
+    /// current position, and increment position
+    template<typename T>
+    void read(T *dest, size_t count)
+    {
+        peek(dest, count);
+        pos += sizeof(T) * count;
     }
 
     /// Convenience function for reading 1 item

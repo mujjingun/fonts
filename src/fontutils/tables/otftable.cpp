@@ -4,7 +4,7 @@
 
 namespace fontutils {
 
-uint32_t calculate_checksum (Buffer &dis, uint32_t length)
+uint32_t calculate_checksum (Buffer &dis, size_t length)
 {
    uint32_t checksum = 0;
    uint32_t l;

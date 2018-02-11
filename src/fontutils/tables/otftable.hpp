@@ -30,7 +30,7 @@ public:
     virtual void parse (Buffer &dis) = 0;
 };
 
-uint32_t calculate_checksum (Buffer &dis, uint32_t length);
+uint32_t calculate_checksum (Buffer &dis, size_t length);
 
 /// Biggest power-of-2 less than or equal to num
 int le_pow2(int num);

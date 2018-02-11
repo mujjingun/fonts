@@ -32,6 +32,7 @@ set(UTILS_SOURCE_FILES
     tables/offsettable.cpp
     tables/generictable.cpp
     tables/cfftable.cpp
+    tables/stdstr.cpp
     )
 add_library(${PROJECT_NAME}utils STATIC ${UTILS_SOURCE_FILES})
 target_link_libraries(${PROJECT_NAME}utils PRIVATE)

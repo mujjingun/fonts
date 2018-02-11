@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.7)
 project(hangulfontmaker)
-enable_language(CXX)
-enable_language(C)
 
 option(BUILD_TESTING "compile with tests" ON)
 

@@ -9,11 +9,11 @@ char to_machine_endian(char const *buf)
 
 template<>
 uint8_t to_machine_endian(char const *buf)
-{ return *buf; }
+{ return static_cast<uint8_t>(*buf & 0xff); }
 
 template<>
 int8_t to_machine_endian(char const *buf)
-{ return *buf; }
+{ return static_cast<int8_t>(*buf & 0xff); }
 
 template<>
 uint16_t to_machine_endian(char const *buf)
