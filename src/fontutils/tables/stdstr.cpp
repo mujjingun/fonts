@@ -2,7 +2,7 @@
 
 namespace fontutils
 {
-char const* standard_strings[391] = {
+std::array<char const*, 391> standard_strings = {
 /*   0 */ ".notdef",
 /*   1 */ "space",
 /*   2 */ "exclam",

@@ -140,6 +140,10 @@ Buffer::Buffer(std::string && data)
     : arr(std::move(data))
 {}
 
+Buffer::Buffer(std::string const& data)
+    : arr(data)
+{}
+
 void Buffer::add_nbytes(int n, uint32_t t)
 {
     if (n <= 0 || n > 4)
@@ -157,6 +161,8 @@ void Buffer::add_nbytes(int n, uint32_t t)
 
 void Buffer::append(const Buffer &buf)
 {
+    for (auto const& item : buf.markers)
+        markers.insert({item.first, arr.size() + item.second});
     arr.append(buf.arr);
 }
 
@@ -206,6 +212,23 @@ size_t Buffer::tell() const
 size_t Buffer::size() const
 {
     return arr.size();
+}
+
+size_t Buffer::marker(std::string const& name) const
+{
+    return markers.at(name);
+}
+
+void Buffer::add_marker(size_t pos, std::string const& name)
+{
+    if (markers.find(name) != markers.end())
+        throw std::runtime_error("marker with the same name already exists.");
+    markers[name] = pos;
+}
+
+void Buffer::clear_markers()
+{
+    markers.clear();
 }
 
 char* Buffer::data()

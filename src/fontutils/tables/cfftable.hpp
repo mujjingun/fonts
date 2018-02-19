@@ -3,24 +3,20 @@
 
 #include "otftable.hpp"
 
-#include <vector>
 #include <array>
 #include <iterator>
+#include <vector>
 
-namespace fontutils
-{
+namespace fontutils {
 
-class CFFTable : public OTFTable
-{
-    struct Font
-    {
+class CFFTable : public OTFTable {
+    struct Font {
         std::string name;
 
         // All font info in top dict index
         // except charset, encoding, charstrings, private,
         // fdarray, and fdselect
-        struct FontInfo
-        {
+        struct FontInfo {
             // SIDs
             std::string version;
             std::string notice;
@@ -35,9 +31,9 @@ class CFFTable : public OTFTable
             int underline_thickness = 50;
             int paint_type = 0;
             int charstring_type = 2;
-            std::array<double, 6> font_matrix = {0.001, 0, 0, 0.001, 0, 0};
+            std::array<double, 6> font_matrix = { 0.001, 0, 0, 0.001, 0, 0 };
             int unique_id = 0;
-            std::array<int, 4> font_bbox = {0, 0, 0, 0};
+            std::array<int, 4> font_bbox = { 0, 0, 0, 0 };
             int stroke_width = 0;
             std::vector<int> xuid;
             std::string postscript;
@@ -52,7 +48,7 @@ class CFFTable : public OTFTable
             double cid_font_revision = 0;
             int cid_font_type = 0;
             int cid_count = 8720;
-            int uid_base;
+            int uid_base = 0;
         } fontinfo;
 
         // charset (gid -> cid mappings)
@@ -64,11 +60,9 @@ class CFFTable : public OTFTable
         // font dict index
         std::vector<uint8_t> fd_select;
 
-        struct FontDict
-        {
+        struct FontDict {
             std::string name;
-            struct Private
-            {
+            struct Private {
                 std::vector<int> blue_values;
                 std::vector<int> other_blues;
                 std::vector<int> family_blues;
@@ -96,10 +90,9 @@ class CFFTable : public OTFTable
 
 public:
     CFFTable();
-    virtual void parse (Buffer &dis) override;
+    virtual void parse(Buffer& dis) override;
     virtual Buffer compile() const override;
 };
-
 }
 
 #endif

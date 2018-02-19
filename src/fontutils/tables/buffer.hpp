@@ -5,6 +5,7 @@
 #include <cstring>
 #include <stdexcept>
 #include <array>
+#include <unordered_map>
 
 namespace fontutils
 {
@@ -15,7 +16,7 @@ enum class Fixed : uint32_t
 using Tag = std::array<uint8_t, 4>;
 
 template<typename T>
-inline T to_machine_endian(char const *buf)
+inline T to_machine_endian(char const *)
 { static_assert((T{}, 0), "Cannot convert type to machine endian"); }
 
 template<> char     to_machine_endian(char const *buf);
@@ -31,7 +32,7 @@ template<> Tag      to_machine_endian(char const *buf);
 template<> Fixed    to_machine_endian(char const* buf);
 
 template<typename T>
-void to_big_endian(char *buf, T t)
+void to_big_endian(char *, T)
 { static_assert((T{}, 0), "Cannot convert type to big endian"); }
 
 template<> void to_big_endian(char* buf, char     t);
@@ -51,14 +52,16 @@ class Buffer
     std::string arr = "";
     size_t pos = 0;
 
+    std::unordered_map<std::string, size_t> markers = {};
+
 public:
     Buffer() = default;
-    explicit Buffer(std::string const& data)
-        : arr(data)
-    {}
+    explicit Buffer(std::string const& data);
     explicit Buffer(std::string && data);
-    Buffer(Buffer const& buffer) = delete;
-    Buffer(Buffer && buffer) = default;
+    Buffer(Buffer const&) = delete;
+    Buffer(Buffer &&) = default;
+    Buffer &operator=(Buffer const&) = delete;
+    Buffer &operator=(Buffer &&) = default;
 
     /// Write bytes starting from the current postion
     /// of the buffer, UB if it goes over the bounds
@@ -76,6 +79,13 @@ public:
         }
 
         pos += n_bytes;
+    }
+
+    /// Convenience function for writing 1 item
+    template<typename T>
+    void write(T t)
+    {
+        write(&t, 1);
     }
 
     /// Add bytes at the end of the buffer,
@@ -164,6 +174,12 @@ public:
     size_t tell() const;
 
     size_t size() const;
+
+    size_t marker(std::string const& name) const;
+
+    void add_marker(size_t pos, std::string const& name);
+
+    void clear_markers();
 
     char* data();
 };

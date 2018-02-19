@@ -1,9 +1,10 @@
 
-#include <gtest/gtest.h>
-#include <pugixml.hpp>
 #include <chrono>
 #include <fstream>
+#include <gtest/gtest.h>
+#include <pugixml.hpp>
 
+#include "fontutils/tables/cffutils.hpp"
 #include "fontutils/tables/offsettable.hpp"
 
 int main(int argc, char* argv[])
@@ -13,14 +14,51 @@ int main(int argc, char* argv[])
     return RUN_ALL_TESTS();
 }
 
+TEST(token_writer, fontutils)
+{
+    fontutils::Buffer buf1, buf2;
+    fontutils::write_token(buf1, -2.25);
+    auto t1 = fontutils::next_token(buf1);
+    EXPECT_EQ(t1.get_type(), fontutils::CFFToken::Type::floating);
+    EXPECT_DOUBLE_EQ(t1.to_double(), -2.25);
+
+    fontutils::write_token(buf2, 0.140541E-3);
+    auto t2 = fontutils::next_token(buf2);
+    EXPECT_EQ(t2.get_type(), fontutils::CFFToken::Type::floating);
+    EXPECT_DOUBLE_EQ(t2.to_double(), 0.140541E-3);
+
+    for (int i = -2000; i < 2000; ++i)
+    {
+        fontutils::Buffer buf;
+        fontutils::write_token(buf, i);
+        auto t = fontutils::next_token(buf);
+        EXPECT_EQ(t.get_type(), fontutils::CFFToken::Type::integer);
+        EXPECT_DOUBLE_EQ(t.to_int(), i);
+    }
+
+    {
+        fontutils::Buffer buf;
+        fontutils::write_token(buf, -12312312);
+        auto t = fontutils::next_token(buf);
+        EXPECT_EQ(t.get_type(), fontutils::CFFToken::Type::integer);
+        EXPECT_DOUBLE_EQ(t.to_int(), -12312312);
+    }
+
+    {
+        fontutils::Buffer buf;
+        fontutils::write_token(buf, 12312312);
+        auto t = fontutils::next_token(buf);
+        EXPECT_EQ(t.get_type(), fontutils::CFFToken::Type::integer);
+        EXPECT_DOUBLE_EQ(t.to_int(), 12312312);
+    }
+}
+
 TEST(write_font, fontutils)
 {
-    try
     {
-        std::ifstream file("data/SourceHanSansKR-Regular.otf");
-        //std::ifstream file("data/testout.otf");
+        std::ifstream file("data/NotoSansCJKkr-Regular.otf");
         fontutils::Buffer buf(std::string{std::istreambuf_iterator<char>(file),
-                                          std::istreambuf_iterator<char>()});
+            std::istreambuf_iterator<char>() });
 
         fontutils::OffsetTable table;
         table.parse(buf);
@@ -28,10 +66,16 @@ TEST(write_font, fontutils)
         std::ofstream otf("data/testout.otf");
         auto outbuf = table.compile();
         otf.write(outbuf.data(), outbuf.size());
+
+        std::cout << "OTF file Succesfully written.\n" << std::endl;
     }
-    catch (std::exception const &e) {
-        std::cerr << e.what() << std::endl;
-    }
+
+    std::ifstream test_file("data/testout.otf");
+    fontutils::Buffer test_buf(std::string{ std::istreambuf_iterator<char>(test_file),
+        std::istreambuf_iterator<char>() });
+
+    fontutils::OffsetTable test_table;
+    test_table.parse(test_buf);
 }
 
 #if 0
