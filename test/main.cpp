@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 #include <pugixml.hpp>
 
-#include "fontutils/tables/cffutils.hpp"
+#include "fontutils/cffutils.hpp"
 #include "fontutils/tables/offsettable.hpp"
 
 int main(int argc, char* argv[])

@@ -1,9 +1,9 @@
-#ifndef TABLES_CFF_UTILS_HPP
-#define TABLES_CFF_UTILS_HPP
+#ifndef FONTUTILS_CFF_UTILS_HPP
+#define FONTUTILS_CFF_UTILS_HPP
 
 #include <cstddef>
-#include <stdexcept>
 #include <iostream>
+#include <stdexcept>
 #include <vector>
 
 #include "buffer.hpp"
@@ -19,25 +19,25 @@ public:
 
     IndexIterator(IndexIterator const& it) = default;
 
-    IndexIterator(size_t count, int off_size, size_t offset_start, Buffer &dis);
+    IndexIterator(size_t count, int off_size, size_t offset_start, Buffer& dis);
 
-    IndexIterator &operator++();
+    IndexIterator& operator++();
 
-    bool operator!=(IndexIterator &rhs) const;
+    bool operator!=(IndexIterator& rhs) const;
 
     struct OffsetData
     {
         size_t offset, length, index;
     };
 
-    OffsetData operator* () const;
+    OffsetData operator*() const;
 
 private:
     size_t index = 0;
     const size_t off_size = 0, count = 0;
     const size_t offset_start = 0;
 
-    Buffer *dis = nullptr;
+    Buffer* dis = nullptr;
 };
 
 struct IndexView
@@ -45,20 +45,21 @@ struct IndexView
     int count = 0;
     int off_size;
     size_t offset_start;
-    Buffer *dis = nullptr;
+    Buffer* dis = nullptr;
 
     IndexIterator begin() const;
 
     IndexIterator end() const;
 };
 
-IndexView parse_index(Buffer &dis);
+IndexView parse_index(Buffer& dis);
 
 class CFFToken
 {
 public:
     enum class Op
     {
+        // clang-format off
         // one-byte ops
         version = 0x00, notice, fullname, familyname,
         weight, fontbbox, bluevalues, otherblues,
@@ -77,6 +78,7 @@ public:
         ros = 0x0c1e, cidfontversion, cidfontrevision,
         cidfonttype, cidcount, uidbase, fdarray, fdselect,
         fontname
+        // clang-format on
     };
 
     enum Type
@@ -113,11 +115,11 @@ private:
     } value;
 };
 
-CFFToken next_token(Buffer &dis);
+CFFToken next_token(Buffer& dis);
 
-Buffer write_index(std::vector<Buffer> const &data);
+Buffer write_index(std::vector<Buffer> const& data);
 
-void write_token(Buffer& dis, CFFToken token);
+void write_token(Buffer& buf, CFFToken token);
 }
 
 #endif

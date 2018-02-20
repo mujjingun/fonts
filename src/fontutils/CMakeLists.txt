@@ -10,12 +10,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(UTILS_SOURCE_FILES
+    buffer.cpp
+    stdstr.cpp
+    cffutils.cpp
+    csparser.cpp
     glyph.cpp
-    subroutines.cpp
-    parser.cpp
-    otfwriter.cpp
 
-    tables/buffer.cpp
     tables/otftable.cpp
     tables/headtable.cpp
     tables/cmaptable.cpp
@@ -32,8 +32,6 @@ set(UTILS_SOURCE_FILES
     tables/offsettable.cpp
     tables/generictable.cpp
     tables/cfftable.cpp
-    tables/stdstr.cpp
-    tables/cffutils.cpp
     )
 add_library(${PROJECT_NAME}utils STATIC ${UTILS_SOURCE_FILES})
 target_link_libraries(${PROJECT_NAME}utils PRIVATE)

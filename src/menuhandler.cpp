@@ -16,15 +16,18 @@ void MenuHandler::fileImportClicked(QVariant file)
 {
     QString filename = QDir::toNativeSeparators(QUrl(file.toString()).toLocalFile());
 
+    /*
     future = QtConcurrent::run([=]() {
         auto glyphs = fontutils::parse_font(filename.toLocal8Bit().constData());
         return glyphs;
     });
     watcher.setFuture(future);
+    */
 }
 
 void MenuHandler::loadFinished()
 {
+    /*
     fontutils::Font font = future.result();
     qDebug() << "Font load finished.";
     qDebug() << "Glyph count: " << font.glyphs.size();
@@ -35,4 +38,5 @@ void MenuHandler::loadFinished()
     model->setJamo(JamoName::IEUNG, Jamo{QString::fromStdString(g2.chname), new Glyph(g2, model)});
     fontutils::Glyph g3 = font.glyphs.at(0x314E);
     model->setJamo(JamoName::HEIUH, Jamo{QString::fromStdString(g3.chname), new Glyph(g3, model)});
+    */
 }

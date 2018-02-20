@@ -1,5 +1,5 @@
-#ifndef TABLES_BUFFER_HPP
-#define TABLES_BUFFER_HPP
+#ifndef FONTUTILS_BUFFER_HPP
+#define FONTUTILS_BUFFER_HPP
 
 #include <string>
 #include <cstring>
@@ -122,7 +122,7 @@ public:
     /// Peek items from the buffer staring from the
     /// current position
     template<typename T>
-    void peek(T *dest, size_t count)
+    void peek(T *dest, size_t count) const
     {
         size_t n_bytes = sizeof(T) * count;
 
@@ -137,7 +137,7 @@ public:
 
     /// Convenience function for peeking 1 item
     template<typename T>
-    T peek()
+    T peek() const
     {
         T t;
         peek(&t, 1);

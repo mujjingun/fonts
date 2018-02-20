@@ -27,7 +27,8 @@ IndexView parse_index(Buffer& dis)
     return IndexView{ count, off_size, offset_start, &dis };
 }
 
-IndexIterator::IndexIterator(size_t count, int off_size, size_t offset_start, Buffer& dis)
+IndexIterator::IndexIterator(
+    size_t count, int off_size, size_t offset_start, Buffer& dis)
     : off_size(off_size)
     , count(count)
     , offset_start(offset_start)
@@ -140,12 +141,12 @@ CFFToken next_token(Buffer& dis)
     if (b0 == 12)
     {
         auto b1 = dis.read<uint8_t>() & 0xff;
-        return static_cast<CFFToken::Op>(b0 << 8 | b1);
+        return CFFToken::Op(b0 << 8 | b1);
     }
     // one-byte operators
     if (b0 <= 21)
     {
-        return static_cast<CFFToken::Op>(b0);
+        return CFFToken::Op(b0);
     }
     // -107..+107
     else if (32 <= b0 && b0 <= 246)
@@ -167,18 +168,12 @@ CFFToken next_token(Buffer& dis)
     // -32768..+32767
     else if (b0 == 28)
     {
-        auto b1 = dis.read<uint8_t>() & 0xff;
-        auto b2 = dis.read<uint8_t>() & 0xff;
-        return int16_t((b1 << 8) | b2);
+        return dis.read<int16_t>();
     }
     // -2^31..+2^31-1
     else if (b0 == 29)
     {
-        auto b1 = dis.read<uint8_t>() & 0xff;
-        auto b2 = dis.read<uint8_t>() & 0xff;
-        auto b3 = dis.read<uint8_t>() & 0xff;
-        auto b4 = dis.read<uint8_t>() & 0xff;
-        return int32_t((b1 << 24) | (b2 << 16) | (b3 << 8) | b4);
+        return dis.read<int32_t>();
     }
     // floating point
     else if (b0 == 30)
@@ -250,16 +245,16 @@ Buffer write_index(std::vector<Buffer> const& data)
     return buf;
 }
 
-void write_token(Buffer& dis, CFFToken token)
+void write_token(Buffer& buf, CFFToken token)
 {
     // op
     if (token.get_type() == CFFToken::Type::op)
     {
         int int_op = int(token.get_op());
         if (int_op & 0xff00)
-            dis.add<uint16_t>(int_op);
+            buf.add<uint16_t>(int_op);
         else
-            dis.add<uint8_t>(int_op);
+            buf.add<uint8_t>(int_op);
     }
     // integer
     else if (token.get_type() == CFFToken::Type::integer)
@@ -268,33 +263,33 @@ void write_token(Buffer& dis, CFFToken token)
 
         if (-107 <= val && val <= 107)
         {
-            dis.add<uint8_t>(val + 139);
+            buf.add<uint8_t>(val + 139);
         }
         else if (108 <= val && val <= 1131)
         {
-            dis.add<uint8_t>(((val - 108) >> 8) + 247);
-            dis.add<uint8_t>((val - 108) & 0xff);
+            buf.add<uint8_t>(((val - 108) >> 8) + 247);
+            buf.add<uint8_t>((val - 108) & 0xff);
         }
         else if (-1131 <= val && val <= -108)
         {
-            dis.add<uint8_t>(((-val - 108) >> 8) + 251);
-            dis.add<uint8_t>((-val - 108) & 0xff);
+            buf.add<uint8_t>(((-val - 108) >> 8) + 251);
+            buf.add<uint8_t>((-val - 108) & 0xff);
         }
         else if (-32768 <= val && val <= 32767)
         {
-            dis.add<uint8_t>(28);
-            dis.add<int16_t>(val);
+            buf.add<uint8_t>(28);
+            buf.add<int16_t>(val);
         }
         else
         {
-            dis.add<uint8_t>(29);
-            dis.add<int32_t>(val);
+            buf.add<uint8_t>(29);
+            buf.add<int32_t>(val);
         }
     }
     // floating point
     else
     {
-        dis.add<uint8_t>(30);
+        buf.add<uint8_t>(30);
 
         std::ostringstream oss;
         oss << std::scientific << token.to_double();
@@ -323,7 +318,7 @@ void write_token(Buffer& dis, CFFToken token)
 
             if (!new_byte)
             {
-                dis.add<uint8_t>(byte);
+                buf.add<uint8_t>(byte);
                 byte = 0;
             }
             else
@@ -334,7 +329,7 @@ void write_token(Buffer& dis, CFFToken token)
             byte = 0xff;
         else
             byte |= 0xf;
-        dis.add<uint8_t>(byte);
+        buf.add<uint8_t>(byte);
     }
 }
 }

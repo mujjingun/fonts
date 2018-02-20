@@ -4,8 +4,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include "cffutils.hpp"
-#include "stdstr.hpp"
+#include "../cffutils.hpp"
+#include "../csparser.hpp"
+#include "../stdstr.hpp"
 
 namespace fontutils
 {
@@ -52,13 +53,20 @@ void CFFTable::parse(Buffer& dis)
 
     // parse sid strings index
     auto string_index = parse_index(dis);
-    std::vector<std::string> sid{ standard_strings.begin(), standard_strings.end() };
+    std::vector<std::string> sid{ standard_strings.begin(),
+                                  standard_strings.end() };
     for (auto str : string_index)
     {
         auto orig_pos = dis.seek(str.offset);
         sid.push_back(dis.read_string(str.length));
         dis.seek(orig_pos);
     }
+
+    // indexviews for charstrings
+    std::vector<IndexView> cs_indices;
+
+    // local subroutines
+    std::vector<std::vector<std::vector<std::string>>> lsubrs;
 
     // parse top dict
     for (auto dict : dict_index)
@@ -99,99 +107,115 @@ void CFFTable::parse(Buffer& dis)
             if (op == CFFToken::Op::version)
             {
                 if (operands.size() != 1)
-                    throw std::runtime_error("number of 'version' operands != 1");
+                    throw std::runtime_error(
+                        "number of 'version' operands != 1");
                 fontinfo.version = sid.at(operands[0].to_int());
             }
             else if (op == CFFToken::Op::notice)
             {
                 if (operands.size() != 1)
-                    throw std::runtime_error("number of 'notice' operands != 1");
+                    throw std::runtime_error(
+                        "number of 'notice' operands != 1");
                 fontinfo.notice = sid.at(operands[0].to_int());
             }
             else if (op == CFFToken::Op::copyright)
             {
                 if (operands.size() != 1)
-                    throw std::runtime_error("number of 'copyright' operands != 1");
+                    throw std::runtime_error(
+                        "number of 'copyright' operands != 1");
                 fontinfo.copyright = sid.at(operands[0].to_int());
             }
             else if (op == CFFToken::Op::fullname)
             {
                 if (operands.size() != 1)
-                    throw std::runtime_error("number of 'fullname' operands != 1");
+                    throw std::runtime_error(
+                        "number of 'fullname' operands != 1");
                 fontinfo.fullname = sid.at(operands[0].to_int());
             }
             else if (op == CFFToken::Op::familyname)
             {
                 if (operands.size() != 1)
-                    throw std::runtime_error("number of 'familyname' operands != 1");
+                    throw std::runtime_error(
+                        "number of 'familyname' operands != 1");
                 fontinfo.familyname = sid.at(operands[0].to_int());
             }
             else if (op == CFFToken::Op::weight)
             {
                 if (operands.size() != 1)
-                    throw std::runtime_error("number of 'weight' operands != 1");
+                    throw std::runtime_error(
+                        "number of 'weight' operands != 1");
                 fontinfo.weight = sid.at(operands[0].to_int());
             }
             else if (op == CFFToken::Op::isfixedpitch)
             {
                 if (operands.size() != 1)
-                    throw std::runtime_error("number of 'isfixedpitch' operands != 1");
+                    throw std::runtime_error(
+                        "number of 'isfixedpitch' operands != 1");
                 fontinfo.is_fixed_pitch = operands[0].to_int();
             }
             else if (op == CFFToken::Op::italicangle)
             {
                 if (operands.size() != 1)
-                    throw std::runtime_error("number of 'italicangle' operands != 1");
+                    throw std::runtime_error(
+                        "number of 'italicangle' operands != 1");
                 fontinfo.italic_angle = operands[0].to_int();
             }
             else if (op == CFFToken::Op::underlineposition)
             {
                 if (operands.size() != 1)
-                    throw std::runtime_error("number of 'underlineposition' operands != 1");
+                    throw std::runtime_error(
+                        "number of 'underlineposition' operands != 1");
                 fontinfo.underline_position = operands[0].to_int();
             }
             else if (op == CFFToken::Op::underlinethickness)
             {
                 if (operands.size() != 1)
-                    throw std::runtime_error("number of 'underlinethickness' operands != 1");
+                    throw std::runtime_error(
+                        "number of 'underlinethickness' operands != 1");
                 fontinfo.underline_thickness = operands[0].to_int();
             }
             else if (op == CFFToken::Op::painttype)
             {
                 if (operands.size() != 1)
-                    throw std::runtime_error("number of 'painttype' operands != 1");
+                    throw std::runtime_error(
+                        "number of 'painttype' operands != 1");
                 fontinfo.paint_type = operands[0].to_int();
             }
             else if (op == CFFToken::Op::charstringtype)
             {
                 if (operands.size() != 1)
-                    throw std::runtime_error("number of 'isfixedpitch' operands != 1");
+                    throw std::runtime_error(
+                        "number of 'isfixedpitch' operands != 1");
                 fontinfo.charstring_type = operands[0].to_int();
             }
             else if (op == CFFToken::Op::fontmatrix)
             {
                 if (operands.size() != 6)
-                    throw std::runtime_error("number of 'fontmatrix' operands != 6");
+                    throw std::runtime_error(
+                        "number of 'fontmatrix' operands != 6");
                 for (int i = 0; i < 6; ++i)
                     fontinfo.font_matrix[i] = operands[i].to_double();
             }
             else if (op == CFFToken::Op::uniqueid)
             {
                 if (operands.size() != 1)
-                    throw std::runtime_error("number of 'uniqueid' operands != 1");
+                    throw std::runtime_error(
+                        "number of 'uniqueid' operands != 1");
                 fontinfo.unique_id = operands[0].to_int();
             }
             else if (op == CFFToken::Op::fontbbox)
             {
                 if (operands.size() != 4)
-                    throw std::runtime_error("number of 'fontbbox' operands != 4");
+                    throw std::runtime_error(
+                        "number of 'fontbbox' operands != 4");
                 for (int i = 0; i < 4; ++i)
                     fontinfo.font_bbox[i] = operands[i].to_int();
             }
             else if (op == CFFToken::Op::strokewidth)
             {
                 if (operands.size() != 1)
-                    throw std::runtime_error("number of 'strokewidth' operands != 1");
+                    throw std::runtime_error(
+                        "number of 'strokewidth' operands != 1");
                 fontinfo.stroke_width = operands[0].to_int();
             }
             else if (op == CFFToken::Op::xuid)
@@ -202,7 +226,8 @@ void CFFTable::parse(Buffer& dis)
             else if (op == CFFToken::Op::charset)
             {
                 if (operands.size() != 1)
-                    throw std::runtime_error("number of 'charset' operands != 1");
+                    throw std::runtime_error(
+                        "number of 'charset' operands != 1");
                 auto charset = operands[0].to_int();
                 if (charset > 2)
                     charset_offset = beginning + charset;
@@ -216,7 +241,8 @@ void CFFTable::parse(Buffer& dis)
             else if (op == CFFToken::Op::charstrings)
             {
                 if (operands.size() != 1)
-                    throw std::runtime_error("number of 'charstrings' operands != 1");
+                    throw std::runtime_error(
+                        "number of 'charstrings' operands != 1");
                 charstrings_offset = beginning + operands[0].to_int();
             }
             else if (op == CFFToken::Op::syntheticbase)
@@ -226,19 +252,22 @@ void CFFTable::parse(Buffer& dis)
             else if (op == CFFToken::Op::postscript)
             {
                 if (operands.size() != 1)
-                    throw std::runtime_error("number of 'postscript operands != 1");
+                    throw std::runtime_error(
+                        "number of 'postscript operands != 1");
                 fontinfo.postscript = sid.at(operands[0].to_int());
             }
             else if (op == CFFToken::Op::basefontname)
             {
                 if (operands.size() != 1)
-                    throw std::runtime_error("number of 'basefontname' operands != 1");
+                    throw std::runtime_error(
+                        "number of 'basefontname' operands != 1");
                 fontinfo.basefont_name = sid.at(operands[0].to_int());
             }
             else if (op == CFFToken::Op::basefontblend)
             {
                 if (operands.size() != 1)
-                    throw std::runtime_error("number of 'basefontblend' operands != 1");
+                    throw std::runtime_error(
+                        "number of 'basefontblend' operands != 1");
                 fontinfo.basefont_blend = operands[0].to_int();
             }
             else if (op == CFFToken::Op::ros)
@@ -252,43 +281,50 @@ void CFFTable::parse(Buffer& dis)
             else if (op == CFFToken::Op::cidfontversion)
             {
                 if (operands.size() != 1)
-                    throw std::runtime_error("number of 'cidfontversion' operands != 1");
+                    throw std::runtime_error(
+                        "number of 'cidfontversion' operands != 1");
                 fontinfo.cid_font_version = operands[0].to_double();
             }
             else if (op == CFFToken::Op::cidfontrevision)
             {
                 if (operands.size() != 1)
-                    throw std::runtime_error("number of 'cidfontrevision' operands != 1");
+                    throw std::runtime_error(
+                        "number of 'cidfontrevision' operands != 1");
                 fontinfo.cid_font_revision = operands[0].to_double();
             }
             else if (op == CFFToken::Op::cidfonttype)
             {
                 if (operands.size() != 1)
-                    throw std::runtime_error("number of 'cidfonttype' operands != 1");
+                    throw std::runtime_error(
+                        "number of 'cidfonttype' operands != 1");
                 fontinfo.cid_font_type = operands[0].to_int();
             }
             else if (op == CFFToken::Op::cidcount)
             {
                 if (operands.size() != 1)
-                    throw std::runtime_error("number of 'cidcount' operands != 1");
+                    throw std::runtime_error(
+                        "number of 'cidcount' operands != 1");
                 fontinfo.cid_count = operands[0].to_int();
             }
             else if (op == CFFToken::Op::uidbase)
             {
                 if (operands.size() != 1)
-                    throw std::runtime_error("number of 'uidbase' operands != 1");
+                    throw std::runtime_error(
+                        "number of 'uidbase' operands != 1");
                 fontinfo.uid_base = operands[0].to_int();
             }
             else if (op == CFFToken::Op::fdarray)
             {
                 if (operands.size() != 1)
-                    throw std::runtime_error("number of 'fdarray' operands != 1");
+                    throw std::runtime_error(
+                        "number of 'fdarray' operands != 1");
                 fdarray_offset = beginning + operands[0].to_int();
             }
             else if (op == CFFToken::Op::fdselect)
             {
                 if (operands.size() != 1)
-                    throw std::runtime_error("number of 'fdselect' operands != 1");
+                    throw std::runtime_error(
+                        "number of 'fdselect' operands != 1");
                 fdselect_offset = beginning + operands[0].to_int();
             }
             else
@@ -302,12 +338,7 @@ void CFFTable::parse(Buffer& dis)
         dis.seek(charstrings_offset);
         auto cs_index = parse_index(dis);
         auto n_glyphs = cs_index.count;
-        font.charstrings.resize(n_glyphs);
-        for (auto item : cs_index)
-        {
-            dis.seek(item.offset);
-            font.charstrings[item.index] = dis.read_string(item.length);
-        }
+        cs_indices.push_back(cs_index);
 
         // parse charset
         font.charset.resize(n_glyphs);
@@ -373,14 +404,15 @@ void CFFTable::parse(Buffer& dis)
         dis.seek(fdarray_offset);
         auto fd_index = parse_index(dis);
         font.fd_array.resize(fd_index.count);
-        for (auto item : fd_index)
+        lsubrs.emplace_back(fd_index.count);
+        for (auto fditem : fd_index)
         {
-            auto& font_dict = font.fd_array[item.index];
+            auto& font_dict = font.fd_array[fditem.index];
             size_t priv_size, priv_offset;
 
-            dis.seek(item.offset);
+            dis.seek(fditem.offset);
             std::vector<CFFToken> operands;
-            while (dis.tell() < item.offset + item.length)
+            while (dis.tell() < fditem.offset + fditem.length)
             {
                 auto token = next_token(dis);
                 if (token.get_type() & CFFToken::number)
@@ -394,7 +426,8 @@ void CFFTable::parse(Buffer& dis)
                 if (op == CFFToken::Op::fontname)
                 {
                     if (operands.size() != 1)
-                        throw std::runtime_error("number of 'fontname' operands != 1");
+                        throw std::runtime_error(
+                            "number of 'fontname' operands != 1");
                     font_dict.name = sid.at(operands[0].to_int());
                 }
                 else if (op == CFFToken::Op::private_)
@@ -410,7 +443,6 @@ void CFFTable::parse(Buffer& dis)
             } // font dict
 
             // parse private dict
-            auto& priv = font_dict.priv;
             int subrs_offset = -1;
 
             operands.clear();
@@ -428,139 +460,152 @@ void CFFTable::parse(Buffer& dis)
                 CFFToken::Op op = token.get_op();
                 if (op == CFFToken::Op::bluevalues)
                 {
-                    priv.blue_values.clear();
+                    font_dict.blue_values.clear();
                     int val = 0;
                     for (auto delta : operands)
                     {
                         val += delta.to_int();
-                        priv.blue_values.push_back(val);
+                        font_dict.blue_values.push_back(val);
                     }
                 }
                 else if (op == CFFToken::Op::otherblues)
                 {
-                    priv.other_blues.clear();
+                    font_dict.other_blues.clear();
                     int val = 0;
                     for (auto delta : operands)
                     {
                         val += delta.to_int();
-                        priv.other_blues.push_back(val);
+                        font_dict.other_blues.push_back(val);
                     }
                 }
                 else if (op == CFFToken::Op::familyblues)
                 {
-                    priv.family_blues.clear();
+                    font_dict.family_blues.clear();
                     int val = 0;
                     for (auto delta : operands)
                     {
                         val += delta.to_int();
-                        priv.family_blues.push_back(val);
+                        font_dict.family_blues.push_back(val);
                     }
                 }
                 else if (op == CFFToken::Op::familyotherblues)
                 {
-                    priv.family_other_blues.clear();
+                    font_dict.family_other_blues.clear();
                     int val = 0;
                     for (auto delta : operands)
                     {
                         val += delta.to_int();
-                        priv.family_other_blues.push_back(val);
+                        font_dict.family_other_blues.push_back(val);
                     }
                 }
                 else if (op == CFFToken::Op::bluescale)
                 {
                     if (operands.size() != 1)
-                        throw std::runtime_error("number of 'bluescale' operands != 1");
-                    priv.blue_scale = operands[0].to_double();
+                        throw std::runtime_error(
+                            "number of 'bluescale' operands != 1");
+                    font_dict.blue_scale = operands[0].to_double();
                 }
                 else if (op == CFFToken::Op::blueshift)
                 {
                     if (operands.size() != 1)
-                        throw std::runtime_error("number of 'blueshift' operands != 1");
-                    priv.blue_shift = operands[0].to_double();
+                        throw std::runtime_error(
+                            "number of 'blueshift' operands != 1");
+                    font_dict.blue_shift = operands[0].to_double();
                 }
                 else if (op == CFFToken::Op::bluefuzz)
                 {
                     if (operands.size() != 1)
-                        throw std::runtime_error("number of 'bluefuzz' operands != 1");
-                    priv.blue_fuzz = operands[0].to_double();
+                        throw std::runtime_error(
+                            "number of 'bluefuzz' operands != 1");
+                    font_dict.blue_fuzz = operands[0].to_double();
                 }
                 else if (op == CFFToken::Op::stdhw)
                 {
                     if (operands.size() != 1)
-                        throw std::runtime_error("number of 'stdhw' operands != 1");
-                    priv.std_hw = operands[0].to_int();
+                        throw std::runtime_error(
+                            "number of 'stdhw' operands != 1");
+                    font_dict.std_hw = operands[0].to_int();
                 }
                 else if (op == CFFToken::Op::stdvw)
                 {
                     if (operands.size() != 1)
-                        throw std::runtime_error("number of 'stdvw' operands != 1");
-                    priv.std_vw = operands[0].to_int();
+                        throw std::runtime_error(
+                            "number of 'stdvw' operands != 1");
+                    font_dict.std_vw = operands[0].to_int();
                 }
                 else if (op == CFFToken::Op::stemsnaph)
                 {
-                    priv.stem_snap_h.clear();
+                    font_dict.stem_snap_h.clear();
                     int val = 0;
                     for (auto delta : operands)
                     {
                         val += delta.to_int();
-                        priv.stem_snap_h.push_back(val);
+                        font_dict.stem_snap_h.push_back(val);
                     }
                 }
                 else if (op == CFFToken::Op::stemsnapv)
                 {
-                    priv.stem_snap_v.clear();
+                    font_dict.stem_snap_v.clear();
                     int val = 0;
                     for (auto delta : operands)
                     {
                         val += delta.to_int();
-                        priv.stem_snap_v.push_back(val);
+                        font_dict.stem_snap_v.push_back(val);
                     }
                 }
                 else if (op == CFFToken::Op::forcebold)
                 {
                     if (operands.size() != 1)
-                        throw std::runtime_error("number of 'forcebold' operands != 1");
-                    priv.force_bold = operands[0].to_int();
+                        throw std::runtime_error(
+                            "number of 'forcebold' operands != 1");
+                    font_dict.force_bold = operands[0].to_int();
                 }
                 else if (op == CFFToken::Op::languagegroup)
                 {
                     if (operands.size() != 1)
-                        throw std::runtime_error("number of 'languagegroup' operands != 1");
-                    priv.language_group = operands[0].to_int();
+                        throw std::runtime_error(
+                            "number of 'languagegroup' operands != 1");
+                    font_dict.language_group = operands[0].to_int();
                 }
                 else if (op == CFFToken::Op::expansionfactor)
                 {
                     if (operands.size() != 1)
-                        throw std::runtime_error("number of 'expansionfactor' operands != 1");
-                    priv.expansion_factor = operands[0].to_double();
+                        throw std::runtime_error(
+                            "number of 'expansionfactor' operands != 1");
+                    font_dict.expansion_factor = operands[0].to_double();
                 }
                 else if (op == CFFToken::Op::initialrandomseed)
                 {
                     if (operands.size() != 1)
-                        throw std::runtime_error("number of 'initialrandomseed' operands != 1");
-                    priv.initial_random_seed = operands[0].to_int();
+                        throw std::runtime_error(
+                            "number of 'initialrandomseed' operands != 1");
+                    font_dict.initial_random_seed = operands[0].to_int();
                 }
                 else if (op == CFFToken::Op::subrs)
                 {
                     if (operands.size() != 1)
-                        throw std::runtime_error("number of 'subrs' operands != 1");
+                        throw std::runtime_error(
+                            "number of 'subrs' operands != 1");
                     subrs_offset = priv_offset + operands[0].to_int();
                 }
                 else if (op == CFFToken::Op::defaultwidthx)
                 {
                     if (operands.size() != 1)
-                        throw std::runtime_error("number of 'defaultwidthx' operands != 1");
-                    priv.default_width_x = operands[0].to_int();
+                        throw std::runtime_error(
+                            "number of 'defaultwidthx' operands != 1");
+                    font_dict.default_width_x = operands[0].to_int();
                 }
                 else if (op == CFFToken::Op::nominalwidthx)
                 {
                     if (operands.size() != 1)
-                        throw std::runtime_error("number of 'nominalwidthx' operands != 1");
-                    priv.nominal_width_x = operands[0].to_int();
+                        throw std::runtime_error(
+                            "number of 'nominalwidthx' operands != 1");
+                    font_dict.nominal_width_x = operands[0].to_int();
                 }
                 else
                 {
-                    throw std::runtime_error("Unknown operand in private dict.");
+                    throw std::runtime_error(
+                        "Unknown operand in private dict.");
                 }
                 operands.clear();
             } // private dict
@@ -573,7 +618,8 @@ void CFFTable::parse(Buffer& dis)
                 for (auto item : subrs_index)
                 {
                     dis.seek(item.offset);
-                    priv.subrs.push_back(dis.read_string(item.length));
+                    lsubrs[dict.index][fditem.index].push_back(
+                        dis.read_string(item.length));
                 }
             }
         } // fdarray
@@ -583,11 +629,28 @@ void CFFTable::parse(Buffer& dis)
 
     // parse global subroutines
     auto gsubr_index = parse_index(dis);
+    std::vector<std::string> gsubrs;
     for (auto item : gsubr_index)
     {
         auto orig_pos = dis.seek(item.offset);
         gsubrs.push_back(dis.read_string(item.length));
         dis.seek(orig_pos);
+    }
+
+    // parse charstrings
+    for (auto i = 0u; i < fonts.size(); ++i)
+    {
+        auto& font = fonts[i];
+        auto& index = cs_indices[i];
+        font.glyphs.resize(index.count);
+        for (auto item : index)
+        {
+            dis.seek(item.offset);
+            font.glyphs[item.index] = parse_charstring(
+                dis.read_string(item.length),
+                gsubrs,
+                lsubrs[i][font.fd_select[item.index]]);
+        }
     }
 }
 
@@ -708,9 +771,9 @@ Buffer CFFTable::compile() const
         append_buf.add_marker(append_buf.size(), oss.str());
 
         std::vector<Buffer> index;
-        for (auto const& str : font.charstrings)
+        for (auto const& glyph : font.glyphs)
         {
-            index.push_back(Buffer(str));
+            index.push_back(write_charstring(glyph));
         }
         append_buf.append(write_index(index));
     }
@@ -749,18 +812,18 @@ Buffer CFFTable::compile() const
         std::vector<Buffer> index;
         for (auto const& font_dict : font.fd_array)
         {
-            auto const& priv = font_dict.priv;
-            const Font::FontDict::Private dflt{};
+            const Font::FontDict dflt{};
             Buffer pbuf;
 
             std::ostringstream start_marker_name;
-            start_marker_name << "private/" << font.name << "/" << font_dict.name;
+            start_marker_name << "private/" << font.name << "/"
+                              << font_dict.name;
             pbuf.add_marker(0, start_marker_name.str());
 
             // write 'bluevalues'
             {
                 int last = 0;
-                for (int val : priv.blue_values)
+                for (int val : font_dict.blue_values)
                 {
                     write_token(pbuf, val - last);
                     last = val;
@@ -771,7 +834,7 @@ Buffer CFFTable::compile() const
             // write 'otherblues'
             {
                 int last = 0;
-                for (int val : priv.other_blues)
+                for (int val : font_dict.other_blues)
                 {
                     write_token(pbuf, val - last);
                     last = val;
@@ -782,7 +845,7 @@ Buffer CFFTable::compile() const
             // write 'familyblues'
             {
                 int last = 0;
-                for (int val : priv.family_blues)
+                for (int val : font_dict.family_blues)
                 {
                     write_token(pbuf, val - last);
                     last = val;
@@ -793,7 +856,7 @@ Buffer CFFTable::compile() const
             // write 'familyotherblues'
             {
                 int last = 0;
-                for (int val : priv.family_other_blues)
+                for (int val : font_dict.family_other_blues)
                 {
                     write_token(pbuf, val - last);
                     last = val;
@@ -801,34 +864,34 @@ Buffer CFFTable::compile() const
                 write_token(pbuf, CFFToken::Op::familyotherblues);
             }
 
-            if (dflt.blue_scale != priv.blue_scale)
+            if (dflt.blue_scale != font_dict.blue_scale)
             {
-                write_token(pbuf, priv.blue_scale);
+                write_token(pbuf, font_dict.blue_scale);
                 write_token(pbuf, CFFToken::Op::bluescale);
             }
 
-            if (dflt.blue_shift != priv.blue_shift)
+            if (dflt.blue_shift != font_dict.blue_shift)
             {
-                write_token(pbuf, priv.blue_shift);
+                write_token(pbuf, font_dict.blue_shift);
                 write_token(pbuf, CFFToken::Op::blueshift);
             }
 
-            if (dflt.blue_fuzz != priv.blue_fuzz)
+            if (dflt.blue_fuzz != font_dict.blue_fuzz)
             {
-                write_token(pbuf, priv.blue_fuzz);
+                write_token(pbuf, font_dict.blue_fuzz);
                 write_token(pbuf, CFFToken::Op::bluefuzz);
             }
 
-            write_token(pbuf, priv.std_hw);
+            write_token(pbuf, font_dict.std_hw);
             write_token(pbuf, CFFToken::Op::stdhw);
 
-            write_token(pbuf, priv.std_vw);
+            write_token(pbuf, font_dict.std_vw);
             write_token(pbuf, CFFToken::Op::stdvw);
 
             // write 'stemsnaph'
             {
                 int last = 0;
-                for (int val : priv.stem_snap_h)
+                for (int val : font_dict.stem_snap_h)
                 {
                     write_token(pbuf, val - last);
                     last = val;
@@ -839,7 +902,7 @@ Buffer CFFTable::compile() const
             // write 'stemsnapv'
             {
                 int last = 0;
-                for (int val : priv.stem_snap_v)
+                for (int val : font_dict.stem_snap_v)
                 {
                     write_token(pbuf, val - last);
                     last = val;
@@ -847,43 +910,44 @@ Buffer CFFTable::compile() const
                 write_token(pbuf, CFFToken::Op::stemsnapv);
             }
 
-            if (dflt.force_bold != priv.force_bold)
+            if (dflt.force_bold != font_dict.force_bold)
             {
-                write_token(pbuf, priv.force_bold);
+                write_token(pbuf, font_dict.force_bold);
                 write_token(pbuf, CFFToken::Op::forcebold);
             }
 
-            if (dflt.language_group != priv.language_group)
+            if (dflt.language_group != font_dict.language_group)
             {
-                write_token(pbuf, priv.language_group);
+                write_token(pbuf, font_dict.language_group);
                 write_token(pbuf, CFFToken::Op::languagegroup);
             }
 
-            if (dflt.expansion_factor != priv.expansion_factor)
+            if (dflt.expansion_factor != font_dict.expansion_factor)
             {
-                write_token(pbuf, priv.expansion_factor);
+                write_token(pbuf, font_dict.expansion_factor);
                 write_token(pbuf, CFFToken::Op::expansionfactor);
             }
 
-            if (dflt.initial_random_seed != priv.initial_random_seed)
+            if (dflt.initial_random_seed != font_dict.initial_random_seed)
             {
-                write_token(pbuf, priv.initial_random_seed);
+                write_token(pbuf, font_dict.initial_random_seed);
                 write_token(pbuf, CFFToken::Op::initialrandomseed);
             }
 
-            if (dflt.default_width_x != priv.default_width_x)
+            if (dflt.default_width_x != font_dict.default_width_x)
             {
-                write_token(pbuf, priv.default_width_x);
+                write_token(pbuf, font_dict.default_width_x);
                 write_token(pbuf, CFFToken::Op::defaultwidthx);
             }
 
-            if (dflt.nominal_width_x != priv.nominal_width_x)
+            if (dflt.nominal_width_x != font_dict.nominal_width_x)
             {
-                write_token(pbuf, priv.nominal_width_x);
+                write_token(pbuf, font_dict.nominal_width_x);
                 write_token(pbuf, CFFToken::Op::nominalwidthx);
             }
 
-            // 5-byte placeholder for local subr offset (from start of priv dict)
+            // 5-byte placeholder for local subr offset (from start of priv
+            // dict)
             std::ostringstream oss;
             oss << "local_subr_off/" << font.name << "/" << font_dict.name;
             pbuf.add_marker(pbuf.size(), oss.str());
@@ -891,7 +955,8 @@ Buffer CFFTable::compile() const
             write_token(pbuf, CFFToken::Op::subrs);
 
             std::ostringstream end_marker_name;
-            end_marker_name << "private_end/" << font.name << "/" << font_dict.name;
+            end_marker_name << "private_end/" << font.name << "/"
+                            << font_dict.name;
             pbuf.add_marker(pbuf.size(), end_marker_name.str());
 
             index.push_back(std::move(pbuf));
@@ -909,10 +974,8 @@ Buffer CFFTable::compile() const
             append_buf.add_marker(append_buf.size(), oss.str());
 
             std::vector<Buffer> index;
-            for (auto const& subr : font_dict.priv.subrs)
-            {
-                index.push_back(Buffer(subr));
-            }
+
+            // write empty subrs for now
             append_buf.append(write_index(index));
         }
     }
@@ -1141,8 +1204,8 @@ Buffer CFFTable::compile() const
     // write gsubr INDEX
     {
         std::vector<Buffer> index;
-        for (auto const& item : gsubrs)
-            index.push_back(Buffer(item));
+
+        // write empty subrs for now
         buf.append(write_index(index));
     }
 
@@ -1223,7 +1286,8 @@ Buffer CFFTable::compile() const
             buf.write<uint32_t>(subr_start - priv_start);
 
             std::ostringstream priv_off_size;
-            priv_off_size << "private_off_size/" << font.name << "/" << font_dict.name;
+            priv_off_size << "private_off_size/" << font.name << "/"
+                          << font_dict.name;
             buf.seek(buf.marker(priv_off_size.str()));
 
             // write size and offset of private dict

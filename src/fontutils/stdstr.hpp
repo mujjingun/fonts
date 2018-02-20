@@ -1,5 +1,5 @@
-#ifndef TABLES_STDSTR_HPP
-#define TABLES_STDSTR_HPP
+#ifndef FONTUTILS_STDSTR_HPP
+#define FONTUTILS_STDSTR_HPP
 
 #include <array>
 

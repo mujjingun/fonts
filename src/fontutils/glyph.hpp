@@ -1,59 +1,33 @@
-#ifndef GLYPH_HPP
-#define GLYPH_HPP
+#ifndef FONTUTILS_GLYPH_HPP
+#define FONTUTILS_GLYPH_HPP
 
 #include <vector>
-#include <memory>
 
-#include "subroutines.hpp"
-
-namespace fontutils {
+namespace fontutils
+{
 
 struct Point
 {
     int x, y;
 };
 
-struct Line
+struct Path
 {
-    Point p;
-};
+    Point start;
+    struct Segment
+    {
+        Point ct1, ct2, p;
+    };
+    std::vector<Segment> segments;
 
-struct CubicBezier
-{
-    Point ct1, ct2, p;
-};
-
-class Path
-{
-public:
-    Path() = default;
     Path(Point start);
-    void add(Line l);
-    void add(CubicBezier b);
-
-    Point start() const;
-    std::vector<CubicBezier> segments() const;
-
-private:
-    Point start_;
-    std::vector<CubicBezier> segments_;
+    void lineto(Point p);
+    void curveto(Point ct1, Point ct2, Point p);
 };
 
 struct Glyph
 {
-    std::string chname;
     std::vector<Path> paths;
-    int width;
-
-    Glyph();
-
-    static Glyph from_charstring(
-        std::string const& chname,
-        std::string const& charstring,
-        subroutine_set const& subroutines,
-        int fd_index);
 };
-
 }
-
 #endif

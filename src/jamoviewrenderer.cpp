@@ -101,6 +101,7 @@ void JamoViewRenderer::rebuild_outlines(QOpenGLFunctions* f)
     QVector<QVector2D> verts;
 
     verts << QVector2D(0, 0);
+    /*
     if (m_glyph)
     {
         for (auto &path : m_glyph->glyph().paths)
@@ -136,6 +137,7 @@ void JamoViewRenderer::rebuild_outlines(QOpenGLFunctions* f)
             m_indices << 0 << verts.size() - 1 << start_idx;
         }
     }
+    */
 
     QOpenGLVertexArrayObject::Binder vao_binder(&m_outlineVAO);
     m_outlineVBO.create();

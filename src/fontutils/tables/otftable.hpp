@@ -7,7 +7,7 @@
 #include <iostream>
 #include <array>
 
-#include "buffer.hpp"
+#include "../buffer.hpp"
 
 namespace fontutils
 {

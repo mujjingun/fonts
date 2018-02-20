@@ -1,22 +1,27 @@
 #ifndef TABLES_CFF_TABLE_HPP
 #define TABLES_CFF_TABLE_HPP
 
+#include "../glyph.hpp"
 #include "otftable.hpp"
 
 #include <array>
 #include <iterator>
 #include <vector>
 
-namespace fontutils {
+namespace fontutils
+{
 
-class CFFTable : public OTFTable {
-    struct Font {
+class CFFTable : public OTFTable
+{
+    struct Font
+    {
         std::string name;
 
         // All font info in top dict index
         // except charset, encoding, charstrings, private,
         // fdarray, and fdselect
-        struct FontInfo {
+        struct FontInfo
+        {
             // SIDs
             std::string version;
             std::string notice;
@@ -55,38 +60,35 @@ class CFFTable : public OTFTable {
         std::vector<uint16_t> charset;
 
         // charstrings (indexed by gid)
-        std::vector<std::string> charstrings;
+        std::vector<Glyph> glyphs;
 
         // font dict index
         std::vector<uint8_t> fd_select;
 
-        struct FontDict {
+        struct FontDict
+        {
             std::string name;
-            struct Private {
-                std::vector<int> blue_values;
-                std::vector<int> other_blues;
-                std::vector<int> family_blues;
-                std::vector<int> family_other_blues;
-                double blue_scale = 0.039625;
-                double blue_shift = 7;
-                double blue_fuzz = 1;
-                int std_hw;
-                int std_vw;
-                std::vector<int> stem_snap_h;
-                std::vector<int> stem_snap_v;
-                bool force_bold = false;
-                int language_group = 0;
-                double expansion_factor = 0.06;
-                int initial_random_seed = 0;
-                std::vector<std::string> subrs;
-                int default_width_x = 0;
-                int nominal_width_x = 0;
-            } priv;
+            std::vector<int> blue_values;
+            std::vector<int> other_blues;
+            std::vector<int> family_blues;
+            std::vector<int> family_other_blues;
+            double blue_scale = 0.039625;
+            double blue_shift = 7;
+            double blue_fuzz = 1;
+            int std_hw;
+            int std_vw;
+            std::vector<int> stem_snap_h;
+            std::vector<int> stem_snap_v;
+            bool force_bold = false;
+            int language_group = 0;
+            double expansion_factor = 0.06;
+            int initial_random_seed = 0;
+            int default_width_x = 0;
+            int nominal_width_x = 0;
         };
         std::vector<FontDict> fd_array;
     };
     std::vector<Font> fonts;
-    std::vector<std::string> gsubrs;
 
 public:
     CFFTable();

@@ -6,7 +6,6 @@
 #include <QVariant>
 #include <QFutureWatcher>
 
-#include "fontutils/parser.hpp"
 #include "jamomodel.hpp"
 
 class MenuHandler : public QObject
@@ -23,7 +22,7 @@ private:
     QObject *window;
     JamoModel *model;
     QFutureWatcher<void> watcher;
-    QFuture<fontutils::Font> future;
+    //QFuture<fontutils::Font> future;
 };
 
 #endif
