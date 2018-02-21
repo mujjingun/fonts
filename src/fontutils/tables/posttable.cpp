@@ -1,14 +1,17 @@
 #include "posttable.hpp"
 
+#include <typeinfo>
+#include <cassert>
+
 namespace fontutils
 {
 
 PostTable::PostTable()
+    : OTFTable("post")
 {
-    id = "post";
 }
 
-void PostTable::parse(Buffer &dis)
+void PostTable::parse(Buffer& dis)
 {
     std::cout << "Parsing 'post'... " << std::endl;
 
@@ -19,8 +22,8 @@ void PostTable::parse(Buffer &dis)
     is_fixed_pitch = dis.read<uint32_t>();
     min_mem_type_42 = dis.read<uint32_t>();
     max_mem_type_42 = dis.read<uint32_t>();
-    min_mem_type_1  = dis.read<uint32_t>();
-    max_mem_type_1  = dis.read<uint32_t>();
+    min_mem_type_1 = dis.read<uint32_t>();
+    max_mem_type_1 = dis.read<uint32_t>();
 }
 
 Buffer PostTable::compile() const
@@ -38,4 +41,17 @@ Buffer PostTable::compile() const
     return buf;
 }
 
+bool PostTable::operator==(OTFTable const& rhs) const noexcept
+{
+    assert(typeid(*this) == typeid(rhs));
+    auto const& other = static_cast<PostTable const&>(rhs);
+    return version == other.version && italic_angle == other.italic_angle
+           && underline_position == other.underline_position
+           && underline_thickness == other.underline_thickness
+           && is_fixed_pitch == other.is_fixed_pitch
+           && min_mem_type_42 == other.min_mem_type_42
+           && max_mem_type_42 == other.max_mem_type_42
+           && min_mem_type_1 == other.min_mem_type_1
+           && max_mem_type_1 == other.max_mem_type_1;
+}
 }

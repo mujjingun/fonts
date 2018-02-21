@@ -2,6 +2,8 @@
 
 #include <chrono>
 #include <ctime>
+#include <typeinfo>
+#include <cassert>
 
 namespace fontutils
 {
@@ -13,9 +15,8 @@ static time_t timestamp()
 }
 
 HeadTable::HeadTable()
+    : OTFTable("head")
 {
-    id = "head";
-
     using namespace std::chrono;
 
     int64_t time = timestamp();
@@ -25,7 +26,7 @@ HeadTable::HeadTable()
     // TODO: set glyph bounding box
 }
 
-void HeadTable::parse(Buffer &dis)
+void HeadTable::parse(Buffer& dis)
 {
     std::cout << "Parsing 'head'... " << std::endl;
 
@@ -70,7 +71,7 @@ Buffer HeadTable::compile() const
     // minorVersion
     buf.add<uint16_t>(0);
     // fontRevision
-    buf.add<Fixed>(Fixed(1 << 16));
+    buf.add<Fixed>(font_revision);
 
     // Set to zero, directly written to the memory afterwards
     buf.add<uint32_t>(0);
@@ -113,4 +114,17 @@ Buffer HeadTable::compile() const
     return buf;
 }
 
+bool HeadTable::operator==(OTFTable const& rhs) const noexcept
+{
+    assert(typeid(*this) == typeid(rhs));
+    auto const& other = static_cast<HeadTable const&>(rhs);
+    return xmin == other.xmin && ymin == other.ymin && xmax == other.xmax
+           && ymax == other.ymax && units_per_em == other.units_per_em
+           && mac_style == other.mac_style && lowest_PPEM == other.lowest_PPEM
+           && font_direction_hint == other.font_direction_hint
+           && glyph_data_format == other.glyph_data_format
+           && version == other.version && font_revision == other.font_revision
+           && flags == other.flags && created == other.created;
+    /* && modified == other.modified */;
+}
 }

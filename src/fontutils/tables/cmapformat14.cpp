@@ -1,13 +1,18 @@
 #include "cmapformat14.hpp"
 
+#include <cassert>
+#include <typeinfo>
+
 namespace fontutils
 {
 
-CmapFormat14Subtable::CmapFormat14Subtable(uint16_t platform_id, uint16_t encoding_id)
+CmapFormat14Subtable::CmapFormat14Subtable(
+    uint16_t platform_id, uint16_t encoding_id)
     : CmapSubtable(platform_id, encoding_id)
-{}
+{
+}
 
-void CmapFormat14Subtable::parse(Buffer &dis)
+void CmapFormat14Subtable::parse(Buffer& dis)
 {
     auto beginning = dis.tell();
 
@@ -33,8 +38,8 @@ void CmapFormat14Subtable::parse(Buffer &dis)
             for (auto i = 0u; i < num_ranges; ++i)
             {
                 char32_t start_val = dis.read_nbytes(3);
-                int count = dis.read<uint8_t>() + 1;
-                uvs.dflt.push_back({start_val, count});
+                int      count = dis.read<uint8_t>() + 1;
+                uvs.dflt.push_back({ start_val, count });
             }
             dis.seek(orig_pos);
         }
@@ -47,8 +52,8 @@ void CmapFormat14Subtable::parse(Buffer &dis)
             for (auto i = 0u; i < num_uvs_mappings; ++i)
             {
                 char32_t unicode_value = dis.read_nbytes(3);
-                auto gid = dis.read<uint16_t>();
-                uvs.special.push_back({unicode_value, gid});
+                auto     gid = dis.read<uint16_t>();
+                uvs.special.push_back({ unicode_value, gid });
             }
             dis.seek(orig_pos);
         }
@@ -75,8 +80,8 @@ Buffer CmapFormat14Subtable::compile() const
     for (auto const& selector : map)
     {
         UVS const& uvs = selector.second;
-        size_t dflt_size = uvs.dflt.size();
-        size_t special_size = uvs.special.size();
+        size_t     dflt_size = uvs.dflt.size();
+        size_t     special_size = uvs.special.size();
         if (dflt_size)
         {
             offset_map[selector.first].dflt = head_length + uvs_buf.size();
@@ -119,9 +124,34 @@ Buffer CmapFormat14Subtable::compile() const
         buf.add<uint32_t>(offsets.special);
     }
 
-    buf.append(uvs_buf);
+    buf.append(std::move(uvs_buf));
 
     return buf;
 }
 
+bool CmapFormat14Subtable::operator==(OTFTable const& rhs) const noexcept
+{
+    assert(typeid(*this) == typeid(rhs));
+    auto const& other = static_cast<CmapFormat14Subtable const&>(rhs);
+
+    return platform_id == other.platform_id && encoding_id == other.encoding_id
+           && map == other.map;
+}
+
+bool CmapFormat14Subtable::DefaultUVSRange::
+operator==(DefaultUVSRange const& rhs) const noexcept
+{
+    return start_val == rhs.start_val && count == rhs.count;
+}
+
+bool CmapFormat14Subtable::UVSMapping::operator==(UVSMapping const& rhs) const
+    noexcept
+{
+    return unicode == rhs.unicode && gid == rhs.gid;
+}
+
+bool CmapFormat14Subtable::UVS::operator==(UVS const& rhs) const noexcept
+{
+    return dflt == rhs.dflt && special == rhs.special;
+}
 }

@@ -14,6 +14,7 @@ public:
     GenericTable(std::string tag, size_t length);
     virtual void parse(Buffer &dis) override;
     virtual Buffer compile() const override;
+    virtual bool operator==(OTFTable const& rhs) const noexcept override;
 };
 
 }

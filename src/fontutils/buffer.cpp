@@ -3,82 +3,95 @@
 namespace fontutils
 {
 
-template<>
-char to_machine_endian(char const *buf)
-{ return *buf; }
+template <> char to_machine_endian(char const* buf)
+{
+    return *buf;
+}
 
-template<>
-uint8_t to_machine_endian(char const *buf)
-{ return static_cast<uint8_t>(*buf & 0xff); }
+template <> uint8_t to_machine_endian(char const* buf)
+{
+    return static_cast<uint8_t>(*buf & 0xff);
+}
 
-template<>
-int8_t to_machine_endian(char const *buf)
-{ return static_cast<int8_t>(*buf & 0xff); }
+template <> int8_t to_machine_endian(char const* buf)
+{
+    return static_cast<int8_t>(*buf & 0xff);
+}
 
-template<>
-uint16_t to_machine_endian(char const *buf)
-{ return (uint16_t(buf[1]&0xff)<<0) | (uint16_t(buf[0]&0xff)<<8); }
+template <> uint16_t to_machine_endian(char const* buf)
+{
+    return (uint16_t(buf[1] & 0xff) << 0) | (uint16_t(buf[0] & 0xff) << 8);
+}
 
-template<>
-int16_t to_machine_endian(char const *buf)
-{ return to_machine_endian<uint16_t>(buf); }
+template <> int16_t to_machine_endian(char const* buf)
+{
+    return to_machine_endian<uint16_t>(buf);
+}
 
-template<>
-uint32_t to_machine_endian(char const *buf)
-{ return (uint32_t(buf[3]&0xff)<<0) | (uint32_t(buf[2]&0xff)<<8)
-            | (uint32_t(buf[1]&0xff)<<16) | (uint32_t(buf[0]&0xff)<<24); }
+template <> uint32_t to_machine_endian(char const* buf)
+{
+    return (uint32_t(buf[3] & 0xff) << 0) | (uint32_t(buf[2] & 0xff) << 8)
+           | (uint32_t(buf[1] & 0xff) << 16) | (uint32_t(buf[0] & 0xff) << 24);
+}
 
-template<>
-int32_t to_machine_endian(char const *buf)
-{ return to_machine_endian<uint32_t>(buf); }
+template <> int32_t to_machine_endian(char const* buf)
+{
+    return to_machine_endian<uint32_t>(buf);
+}
 
-template<>
-uint64_t to_machine_endian(char const *buf)
-{ return (uint64_t(buf[7]&0xff)<<0) | (uint64_t(buf[6]&0xff)<<8)
-            | (uint64_t(buf[5]&0xff)<<16) | (uint64_t(buf[4]&0xff)<<24)
-            | (uint64_t(buf[3]&0xff)<<32) | (uint64_t(buf[2]&0xff)<<40)
-            | (uint64_t(buf[1]&0xff)<<48) | (uint64_t(buf[0]&0xff)<<56); }
+template <> uint64_t to_machine_endian(char const* buf)
+{
+    return (uint64_t(buf[7] & 0xff) << 0) | (uint64_t(buf[6] & 0xff) << 8)
+           | (uint64_t(buf[5] & 0xff) << 16) | (uint64_t(buf[4] & 0xff) << 24)
+           | (uint64_t(buf[3] & 0xff) << 32) | (uint64_t(buf[2] & 0xff) << 40)
+           | (uint64_t(buf[1] & 0xff) << 48) | (uint64_t(buf[0] & 0xff) << 56);
+}
 
-template<>
-int64_t to_machine_endian(char const *buf)
-{ return to_machine_endian<uint64_t>(buf); }
+template <> int64_t to_machine_endian(char const* buf)
+{
+    return to_machine_endian<uint64_t>(buf);
+}
 
-template<>
-Tag to_machine_endian(char const *buf)
-{ return {uint8_t(buf[0]), uint8_t(buf[1]), uint8_t(buf[2]), uint8_t(buf[3])}; }
+template <> Tag to_machine_endian(char const* buf)
+{
+    return {
+        uint8_t(buf[0]), uint8_t(buf[1]), uint8_t(buf[2]), uint8_t(buf[3])
+    };
+}
 
-template<>
-Fixed to_machine_endian(char const* buf)
-{ return Fixed(to_machine_endian<uint32_t>(buf)); }
+template <> Fixed to_machine_endian(char const* buf)
+{
+    return Fixed(to_machine_endian<uint32_t>(buf));
+}
 
-template<>
-void to_big_endian(char *buf, char t)
-{ *buf = t; }
+template <> void to_big_endian(char* buf, char t)
+{
+    *buf = t;
+}
 
-template<>
-void to_big_endian(char *buf, int8_t t)
-{ *buf = t; }
+template <> void to_big_endian(char* buf, int8_t t)
+{
+    *buf = t;
+}
 
-template<>
-void to_big_endian(char *buf, uint8_t t)
-{ *buf = t; }
+template <> void to_big_endian(char* buf, uint8_t t)
+{
+    *buf = t;
+}
 
-template<>
-void to_big_endian(char *buf, uint16_t t)
+template <> void to_big_endian(char* buf, uint16_t t)
 {
     buf[0] = (t & 0xff00) >> 8;
     buf[1] = (t & 0x00ff);
 }
 
-template<>
-void to_big_endian(char *buf, int16_t t)
+template <> void to_big_endian(char* buf, int16_t t)
 {
     buf[0] = (t & 0xff00) >> 8;
     buf[1] = (t & 0x00ff);
 }
 
-template<>
-void to_big_endian(char *buf, uint32_t t)
+template <> void to_big_endian(char* buf, uint32_t t)
 {
     buf[0] = (t & 0xff000000) >> 24;
     buf[1] = (t & 0x00ff0000) >> 16;
@@ -86,8 +99,7 @@ void to_big_endian(char *buf, uint32_t t)
     buf[3] = (t & 0x000000ff);
 }
 
-template<>
-void to_big_endian(char *buf, int32_t t)
+template <> void to_big_endian(char* buf, int32_t t)
 {
     buf[0] = (t & 0xff000000) >> 24;
     buf[1] = (t & 0x00ff0000) >> 16;
@@ -95,8 +107,7 @@ void to_big_endian(char *buf, int32_t t)
     buf[3] = (t & 0x000000ff);
 }
 
-template<>
-void to_big_endian(char *buf, uint64_t t)
+template <> void to_big_endian(char* buf, uint64_t t)
 {
     buf[0] = (t & 0xff00000000000000) >> 56;
     buf[1] = (t & 0x00ff000000000000) >> 48;
@@ -108,8 +119,7 @@ void to_big_endian(char *buf, uint64_t t)
     buf[7] = (t & 0x00000000000000ff);
 }
 
-template<>
-void to_big_endian(char *buf, int64_t t)
+template <> void to_big_endian(char* buf, int64_t t)
 {
     buf[0] = (t & 0xff00000000000000) >> 56;
     buf[1] = (t & 0x00ff000000000000) >> 48;
@@ -121,14 +131,12 @@ void to_big_endian(char *buf, int64_t t)
     buf[7] = (t & 0x00000000000000ff);
 }
 
-template<>
-void to_big_endian(char *buf, Fixed t)
+template <> void to_big_endian(char* buf, Fixed t)
 {
     to_big_endian<uint32_t>(buf, uint32_t(t));
 }
 
-template<>
-void to_big_endian(char *buf, Tag t)
+template <> void to_big_endian(char* buf, Tag t)
 {
     buf[0] = t[0];
     buf[1] = t[1];
@@ -136,13 +144,15 @@ void to_big_endian(char *buf, Tag t)
     buf[3] = t[3];
 }
 
-Buffer::Buffer(std::string && data)
+Buffer::Buffer(std::string&& data)
     : arr(std::move(data))
-{}
+{
+}
 
 Buffer::Buffer(std::string const& data)
     : arr(data)
-{}
+{
+}
 
 void Buffer::add_nbytes(int n, uint32_t t)
 {
@@ -159,17 +169,20 @@ void Buffer::add_nbytes(int n, uint32_t t)
     }
 }
 
-void Buffer::append(const Buffer &buf)
+void Buffer::append(Buffer&& buf)
 {
     for (auto const& item : buf.markers)
-        markers.insert({item.first, arr.size() + item.second});
+        markers.insert({ item.first, arr.size() + item.second });
     arr.append(buf.arr);
+    buf.arr.clear();
+    buf.markers.clear();
 }
 
 void Buffer::pad()
 {
     size_t n = arr.size() % 4;
-    if (n > 0) {
+    if (n > 0)
+    {
         arr.resize(arr.size() + (4 - n));
     }
 }
@@ -235,5 +248,4 @@ char* Buffer::data()
 {
     return &arr[0];
 }
-
 }

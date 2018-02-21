@@ -117,7 +117,7 @@ private:
 
 CFFToken next_token(Buffer& dis);
 
-Buffer write_index(std::vector<Buffer> const& data);
+Buffer write_index(std::vector<Buffer>&& data);
 
 void write_token(Buffer& buf, CFFToken token);
 }

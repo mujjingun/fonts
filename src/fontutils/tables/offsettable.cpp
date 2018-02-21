@@ -1,6 +1,8 @@
 #include "offsettable.hpp"
 
+#include "cfftable.hpp"
 #include "cmaptable.hpp"
+#include "generictable.hpp"
 #include "headtable.hpp"
 #include "hheatable.hpp"
 #include "hmtxtable.hpp"
@@ -8,26 +10,25 @@
 #include "nametable.hpp"
 #include "os2table.hpp"
 #include "posttable.hpp"
-#include "generictable.hpp"
-#include "cfftable.hpp"
 
+#include <algorithm>
+#include <cassert>
+#include <cmath>
 #include <map>
 #include <sstream>
-#include <algorithm>
-#include <cmath>
+#include <typeinfo>
 
 namespace fontutils
 {
 
 OffsetTable::OffsetTable()
-{}
+    : OTFTable("sfnt")
+{
+}
 
 // Factory method for making tables
-static std::unique_ptr<OTFTable> make_table(
-        std::string name,
-        Buffer &dis,
-        size_t offset,
-        size_t length)
+static std::unique_ptr<OTFTable>
+make_table(std::string name, Buffer& dis, size_t offset, size_t length)
 {
     std::unique_ptr<OTFTable> table;
 
@@ -53,7 +54,7 @@ static std::unique_ptr<OTFTable> make_table(
     return table;
 }
 
-void OffsetTable::parse(Buffer &dis)
+void OffsetTable::parse(Buffer& dis)
 {
     auto beginning = dis.tell();
 
@@ -69,23 +70,24 @@ void OffsetTable::parse(Buffer &dis)
     // rangeShift
     dis.read<uint16_t>();
 
-    struct TableInfo{
+    struct TableInfo
+    {
         size_t offset;
         size_t length;
     };
     std::map<std::string, TableInfo> tables_pos;
     uint32_t entire_checksum = 0;
-    uint32_t checksum_adjustment;
+    uint32_t checksum_adjustment = 0;
     for (auto i = 0u; i < num_tables; ++i)
     {
-        Tag tag = dis.read<Tag>();
+        Tag         tag = dis.read<Tag>();
         std::string table_name = std::string(tag.begin(), tag.end());
 
         uint32_t checksum = dis.read<uint32_t>();
 
         size_t offset = dis.read<uint32_t>();
         size_t length = dis.read<uint32_t>();
-        tables_pos[table_name] = {offset, length};
+        tables_pos[table_name] = { offset, length };
 
         auto orig_pos = dis.tell();
         dis.seek(offset);
@@ -114,17 +116,8 @@ void OffsetTable::parse(Buffer &dis)
         dis.seek(orig_pos);
     }
 
-    // Validate checksumAdjustment
-    auto length = dis.seek(beginning) - beginning;
-    entire_checksum += calculate_checksum(dis, length);
-    if (entire_checksum + checksum_adjustment != 0xB1B0AFBA)
-    {
-        throw std::runtime_error("Invalid font checksum.");
-    }
-
-    const char *required_tables[] = {
-        "cmap", "head", "hhea", "hmtx", "maxp", "name", "OS/2", "post"
-    };
+    const char* required_tables[]
+        = { "cmap", "head", "hhea", "hmtx", "maxp", "name", "OS/2", "post" };
 
     for (auto r : required_tables)
     {
@@ -134,6 +127,14 @@ void OffsetTable::parse(Buffer &dis)
             oss << "Font does not have the required table '" << r << "'.";
             throw std::runtime_error(oss.str());
         }
+    }
+
+    // Validate checksumAdjustment
+    auto length = dis.seek(beginning) - beginning;
+    entire_checksum += calculate_checksum(dis, length);
+    if (entire_checksum + checksum_adjustment != 0xB1B0AFBA)
+    {
+        throw std::runtime_error("Invalid font checksum.");
     }
 
     auto maxp = new MaxpTable();
@@ -155,10 +156,10 @@ void OffsetTable::parse(Buffer &dis)
     tables["hmtx"] = std::unique_ptr<OTFTable>(hmtx);
 
     // Parse the remaining tables
-    for (auto const &table : tables_pos)
+    for (auto const& table : tables_pos)
     {
         std::string const& tag = table.first;
-        TableInfo const& info = table.second;
+        TableInfo const&   info = table.second;
         tables[tag] = make_table(tag, dis, info.offset, info.length);
     }
 }
@@ -181,10 +182,10 @@ Buffer OffsetTable::compile() const
     // rangeShift
     buf.add<uint16_t>(tables.size() * 16 - search_range);
 
-    Buffer tables_data;
-    size_t offset_table_size = 12 + 16 * tables.size();
+    Buffer   tables_data;
+    size_t   offset_table_size = 12 + 16 * tables.size();
     uint32_t entire_checksum = 0;
-    size_t checksum_adj_pos;
+    int      checksum_adj_pos = -1;
     // Table Records
     for (auto const& pp : tables)
     {
@@ -194,7 +195,7 @@ Buffer OffsetTable::compile() const
         buf.add<char>(table_name.data(), 4);
 
         Buffer table_buf = table->compile();
-        auto length = table_buf.size();
+        auto   length = table_buf.size();
         table_buf.pad();
 
         // checksum
@@ -214,10 +215,13 @@ Buffer OffsetTable::compile() const
         // length
         buf.add<uint32_t>(length);
 
-        tables_data.append(table_buf);
+        tables_data.append(std::move(table_buf));
     }
 
-    buf.append(tables_data);
+    if (checksum_adj_pos == -1)
+        throw std::runtime_error("'head' table not present");
+
+    buf.append(std::move(tables_data));
     buf.pad();
 
     // set checksumAdjustment value
@@ -230,4 +234,25 @@ Buffer OffsetTable::compile() const
     return buf;
 }
 
+bool OffsetTable::operator==(OTFTable const& rhs) const noexcept
+{
+    assert(typeid(*this) == typeid(rhs));
+    auto const& other = static_cast<OffsetTable const&>(rhs);
+
+    if (tables.size() != other.tables.size())
+        return false;
+
+    for (auto const& table : tables)
+    {
+        // no table with matching tag
+        if (!other.tables.count(table.first))
+            return false;
+
+        auto const& t0 = *table.second;
+        auto const& t1 = *other.tables.at(table.first);
+        if (!(t0 == t1))
+            return false;
+    }
+    return true;
+}
 }

@@ -210,7 +210,7 @@ CFFToken next_token(Buffer& dis)
     }
 }
 
-Buffer write_index(std::vector<Buffer> const& data)
+Buffer write_index(std::vector<Buffer>&& data)
 {
     Buffer buf;
     buf.add<uint16_t>(data.size());
@@ -239,8 +239,8 @@ Buffer write_index(std::vector<Buffer> const& data)
         buf.add_nbytes(off_size, offset);
     }
 
-    for (auto const& item : data)
-        buf.append(item);
+    for (auto& item : data)
+        buf.append(std::move(item));
 
     return buf;
 }

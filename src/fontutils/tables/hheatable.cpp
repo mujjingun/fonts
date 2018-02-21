@@ -1,14 +1,17 @@
 #include "hheatable.hpp"
 
+#include <typeinfo>
+#include <cassert>
+
 namespace fontutils
 {
 
 HheaTable::HheaTable()
+    : OTFTable("hhea")
 {
-    id = "hhea";
 }
 
-void HheaTable::parse(Buffer &dis)
+void HheaTable::parse(Buffer& dis)
 {
     std::cout << "Parsing 'hhea'... " << std::endl;
 
@@ -72,4 +75,19 @@ Buffer HheaTable::compile() const
     return buf;
 }
 
+bool HheaTable::operator==(OTFTable const& rhs) const noexcept
+{
+    assert(typeid(*this) == typeid(rhs));
+    auto const& other = static_cast<HheaTable const&>(rhs);
+    return ascender == other.ascender && descender == other.descender
+           && line_gap == other.line_gap
+           && advance_width_max == other.advance_width_max
+           && min_lsb == other.min_lsb && max_lsb == other.max_lsb
+           && x_max_extent == other.x_max_extent
+           && caret_slope_rise == other.caret_slope_rise
+           && caret_slope_run == other.caret_slope_run
+           && caret_offset == other.caret_offset
+           && metric_data_format == other.metric_data_format
+           && num_h_metrics == other.num_h_metrics;
+}
 }

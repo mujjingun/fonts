@@ -1,15 +1,19 @@
 #include "cmapformat12.hpp"
 
+#include <cassert>
+#include <typeinfo>
 #include <vector>
 
 namespace fontutils
 {
 
-CmapFormat12Subtable::CmapFormat12Subtable(uint16_t platform_id, uint16_t encoding_id)
+CmapFormat12Subtable::CmapFormat12Subtable(
+    uint16_t platform_id, uint16_t encoding_id)
     : CmapSubtable(platform_id, encoding_id)
-{}
+{
+}
 
-void CmapFormat12Subtable::parse(Buffer &dis)
+void CmapFormat12Subtable::parse(Buffer& dis)
 {
     auto format = dis.read<uint16_t>();
     if (format != 12)
@@ -58,25 +62,20 @@ Buffer CmapFormat12Subtable::compile() const
 
     uint32_t begin = cmap.begin()->first, last = begin;
     uint32_t begin_gid = cmap.begin()->second, last_gid = begin_gid;
-    for (auto it = std::next(cmap.begin());; ++it)
+    for (auto it = std::next(cmap.begin()); it != cmap.end(); ++it)
     {
         uint32_t code, gid;
 
-        if (it != cmap.end())
-        {
-            code = it->first;
-            gid = it->second;
-        }
+        code = it->first;
+        gid = it->second;
 
-        if (it == cmap.end() || (last + 1 != code || last_gid + 1 != gid))
+        if (last + 1 != code || last_gid + 1 != gid)
         {
             SequentialMapGroup group;
             group.start_char_code = begin;
             group.end_char_code = last;
             group.start_glyph_id = begin_gid;
             group_list.push_back(group);
-
-            if (it == cmap.end()) break;
 
             begin = code;
             begin_gid = gid;
@@ -85,6 +84,7 @@ Buffer CmapFormat12Subtable::compile() const
         last = code;
         last_gid = gid;
     }
+    group_list.push_back({ begin, last, begin_gid });
 
     auto length = 16 + group_list.size() * 12;
     buf.add<uint32_t>(length);
@@ -101,4 +101,12 @@ Buffer CmapFormat12Subtable::compile() const
     return buf;
 }
 
+bool CmapFormat12Subtable::operator==(OTFTable const& rhs) const noexcept
+{
+    assert(typeid(*this) == typeid(rhs));
+    auto const& other = static_cast<CmapFormat12Subtable const&>(rhs);
+
+    return platform_id == other.platform_id && encoding_id == other.encoding_id
+           && cmap == other.cmap;
+}
 }

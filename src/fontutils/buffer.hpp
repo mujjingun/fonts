@@ -1,51 +1,54 @@
 #ifndef FONTUTILS_BUFFER_HPP
 #define FONTUTILS_BUFFER_HPP
 
-#include <string>
+#include <array>
 #include <cstring>
 #include <stdexcept>
-#include <array>
+#include <string>
 #include <unordered_map>
 
 namespace fontutils
 {
 
 enum class Fixed : uint32_t
-{};
+{
+};
 
 using Tag = std::array<uint8_t, 4>;
 
-template<typename T>
-inline T to_machine_endian(char const *)
-{ static_assert((T{}, 0), "Cannot convert type to machine endian"); }
+template <typename T> inline T to_machine_endian(char const*)
+{
+    static_assert((T{}, 0), "Cannot convert type to machine endian");
+}
 
-template<> char     to_machine_endian(char const *buf);
-template<> uint8_t  to_machine_endian(char const *buf);
-template<> int8_t   to_machine_endian(char const *buf);
-template<> uint16_t to_machine_endian(char const *buf);
-template<> int16_t  to_machine_endian(char const *buf);
-template<> uint32_t to_machine_endian(char const *buf);
-template<> int32_t  to_machine_endian(char const *buf);
-template<> uint64_t to_machine_endian(char const *buf);
-template<> int64_t  to_machine_endian(char const *buf);
-template<> Tag      to_machine_endian(char const *buf);
-template<> Fixed    to_machine_endian(char const* buf);
+template <> char to_machine_endian(char const* buf);
+template <> uint8_t to_machine_endian(char const* buf);
+template <> int8_t to_machine_endian(char const* buf);
+template <> uint16_t to_machine_endian(char const* buf);
+template <> int16_t to_machine_endian(char const* buf);
+template <> uint32_t to_machine_endian(char const* buf);
+template <> int32_t to_machine_endian(char const* buf);
+template <> uint64_t to_machine_endian(char const* buf);
+template <> int64_t to_machine_endian(char const* buf);
+template <> Tag to_machine_endian(char const* buf);
+template <> Fixed to_machine_endian(char const* buf);
 
-template<typename T>
-void to_big_endian(char *, T)
-{ static_assert((T{}, 0), "Cannot convert type to big endian"); }
+template <typename T> void to_big_endian(char*, T)
+{
+    static_assert((T{}, 0), "Cannot convert type to big endian");
+}
 
-template<> void to_big_endian(char* buf, char     t);
-template<> void to_big_endian(char* buf, uint8_t  t);
-template<> void to_big_endian(char* buf, int8_t   t);
-template<> void to_big_endian(char* buf, uint16_t t);
-template<> void to_big_endian(char* buf, int16_t  t);
-template<> void to_big_endian(char* buf, uint32_t t);
-template<> void to_big_endian(char* buf, int32_t  t);
-template<> void to_big_endian(char* buf, uint64_t t);
-template<> void to_big_endian(char* buf, int64_t  t);
-template<> void to_big_endian(char* buf, Tag      t);
-template<> void to_big_endian(char* buf, Fixed    t);
+template <> void to_big_endian(char* buf, char t);
+template <> void to_big_endian(char* buf, uint8_t t);
+template <> void to_big_endian(char* buf, int8_t t);
+template <> void to_big_endian(char* buf, uint16_t t);
+template <> void to_big_endian(char* buf, int16_t t);
+template <> void to_big_endian(char* buf, uint32_t t);
+template <> void to_big_endian(char* buf, int32_t t);
+template <> void to_big_endian(char* buf, uint64_t t);
+template <> void to_big_endian(char* buf, int64_t t);
+template <> void to_big_endian(char* buf, Tag t);
+template <> void to_big_endian(char* buf, Fixed t);
 
 class Buffer
 {
@@ -57,16 +60,15 @@ class Buffer
 public:
     Buffer() = default;
     explicit Buffer(std::string const& data);
-    explicit Buffer(std::string && data);
+    explicit Buffer(std::string&& data);
     Buffer(Buffer const&) = delete;
-    Buffer(Buffer &&) = default;
-    Buffer &operator=(Buffer const&) = delete;
-    Buffer &operator=(Buffer &&) = default;
+    Buffer(Buffer&&) = default;
+    Buffer& operator=(Buffer const&) = delete;
+    Buffer& operator=(Buffer&&) = default;
 
     /// Write bytes starting from the current postion
     /// of the buffer, UB if it goes over the bounds
-    template<typename T>
-    void write(T *ptr, size_t count)
+    template <typename T> void write(T* ptr, size_t count)
     {
         size_t n_bytes = sizeof(T) * count;
 
@@ -82,16 +84,14 @@ public:
     }
 
     /// Convenience function for writing 1 item
-    template<typename T>
-    void write(T t)
+    template <typename T> void write(T t)
     {
         write(&t, 1);
     }
 
     /// Add bytes at the end of the buffer,
     /// regardless of the current position
-    template<typename T>
-    void add(T const *ptr, size_t count)
+    template <typename T> void add(T const* ptr, size_t count)
     {
         size_t n_bytes = sizeof(T) * count;
         size_t orig_size = arr.size();
@@ -104,8 +104,7 @@ public:
     }
 
     /// Convenience function for adding 1 item
-    template<typename T>
-    void add(T t)
+    template <typename T> void add(T t)
     {
         add(&t, 1);
     }
@@ -114,15 +113,14 @@ public:
     void add_nbytes(int n, uint32_t t);
 
     /// Append another buffer to the end of this one
-    void append(Buffer const &buf);
+    void append(Buffer&& buf);
 
     /// Pad to 4-byte boundary
     void pad();
 
     /// Peek items from the buffer staring from the
     /// current position
-    template<typename T>
-    void peek(T *dest, size_t count) const
+    template <typename T> void peek(T* dest, size_t count) const
     {
         size_t n_bytes = sizeof(T) * count;
 
@@ -136,8 +134,7 @@ public:
     }
 
     /// Convenience function for peeking 1 item
-    template<typename T>
-    T peek() const
+    template <typename T> T peek() const
     {
         T t;
         peek(&t, 1);
@@ -146,16 +143,14 @@ public:
 
     /// Read items from the buffer staring from the
     /// current position, and increment position
-    template<typename T>
-    void read(T *dest, size_t count)
+    template <typename T> void read(T* dest, size_t count)
     {
         peek(dest, count);
         pos += sizeof(T) * count;
     }
 
     /// Convenience function for reading 1 item
-    template<typename T>
-    T read()
+    template <typename T> T read()
     {
         T t;
         read(&t, 1);
@@ -183,7 +178,6 @@ public:
 
     char* data();
 };
-
 }
 
 #endif // TABLES_BUFFER_HPP

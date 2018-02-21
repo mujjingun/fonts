@@ -18,6 +18,7 @@ public:
     OffsetTable();
     virtual void parse(Buffer &dis) override;
     virtual Buffer compile() const override;
+    virtual bool operator==(OTFTable const& rhs) const noexcept override;
 };
 
 }

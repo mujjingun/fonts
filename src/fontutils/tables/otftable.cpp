@@ -4,6 +4,10 @@
 
 namespace fontutils {
 
+OTFTable::OTFTable(std::string id)
+    : id(id)
+{}
+
 uint32_t calculate_checksum (Buffer &dis, size_t length)
 {
    uint32_t checksum = 0;

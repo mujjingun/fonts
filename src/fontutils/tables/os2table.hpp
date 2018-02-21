@@ -10,21 +10,21 @@ class OS2Table : public OTFTable
 {
 public:
     uint16_t version;
-    int16_t x_avg_char_width;
+    int16_t  x_avg_char_width;
     uint16_t us_weight_class;
     uint16_t us_width_class;
     uint16_t fs_type;
-    int16_t y_subscript_x_size;
-    int16_t y_subscript_y_size;
-    int16_t y_subscript_x_offset;
-    int16_t y_subscript_y_offset;
-    int16_t y_superscript_x_size;
-    int16_t y_superscript_y_size;
-    int16_t y_superscript_x_offset;
-    int16_t y_superscript_y_offset;
-    int16_t y_strikeout_size;
-    int16_t y_strikeout_position;
-    int16_t s_family_class;
+    int16_t  y_subscript_x_size;
+    int16_t  y_subscript_y_size;
+    int16_t  y_subscript_x_offset;
+    int16_t  y_subscript_y_offset;
+    int16_t  y_superscript_x_size;
+    int16_t  y_superscript_y_size;
+    int16_t  y_superscript_x_offset;
+    int16_t  y_superscript_y_offset;
+    int16_t  y_strikeout_size;
+    int16_t  y_strikeout_position;
+    int16_t  s_family_class;
     struct Panose
     {
         uint8_t b_family_type;
@@ -45,13 +45,13 @@ public:
         uint32_t ul_unicode_range_3;
         uint32_t ul_unicode_range_4;
     } ul_unicode_range;
-    Tag ach_vend_id;
+    Tag      ach_vend_id;
     uint16_t fs_selection;
     uint16_t us_first_char_index;
     uint16_t us_last_char_index;
-    int16_t s_typo_ascender;
-    int16_t s_typo_descender;
-    int16_t s_typo_line_gap;
+    int16_t  s_typo_ascender;
+    int16_t  s_typo_descender;
+    int16_t  s_typo_line_gap;
     uint16_t us_win_ascent;
     uint16_t us_win_descent;
     struct CodepageRange
@@ -59,18 +59,18 @@ public:
         uint32_t ul_codepage_range_1;
         uint32_t ul_codepage_range_2;
     } ul_codepage_range;
-    int16_t s_x_height;
-    int16_t s_cap_height;
+    int16_t  s_x_height;
+    int16_t  s_cap_height;
     uint16_t us_default_char;
     uint16_t us_break_char;
     uint16_t us_max_context;
 
 public:
     OS2Table();
-    virtual void parse(Buffer &dis) override;
+    virtual void parse(Buffer& dis) override;
     virtual Buffer compile() const override;
+    virtual bool operator==(OTFTable const& rhs) const noexcept override;
 };
-
 }
 
 #endif

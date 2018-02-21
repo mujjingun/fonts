@@ -1,14 +1,17 @@
 #include "nametable.hpp"
 
+#include <typeinfo>
+#include <cassert>
+
 namespace fontutils
 {
 
 NameTable::NameTable()
+    : OTFTable("name")
 {
-    id = "name";
 }
 
-void NameTable::parse(Buffer &dis)
+void NameTable::parse(Buffer& dis)
 {
     std::cout << "Parsing 'name'... " << std::endl;
 
@@ -17,7 +20,7 @@ void NameTable::parse(Buffer &dis)
     format = dis.read<uint16_t>();
     if (format == 0)
     {
-        auto count = dis.read<uint16_t>();
+        auto   count = dis.read<uint16_t>();
         size_t offset = dis.read<uint16_t>();
         for (auto i = 0u; i < count; ++i)
         {
@@ -71,7 +74,7 @@ Buffer NameTable::compile() const
             strings.append(Buffer(records[i].str));
         }
 
-        buf.append(strings);
+        buf.append(std::move(strings));
     }
     else
         throw std::runtime_error("Unrecognized name table format");
@@ -79,4 +82,17 @@ Buffer NameTable::compile() const
     return buf;
 }
 
+bool NameTable::operator==(OTFTable const& rhs) const noexcept
+{
+    assert(typeid(*this) == typeid(rhs));
+    auto const& other = static_cast<NameTable const&>(rhs);
+    return format == other.format && records == other.records;
+}
+
+bool NameTable::NameRecord::operator==(NameRecord const& rhs) const noexcept
+{
+    return platform_id == rhs.platform_id && encoding_id == rhs.encoding_id
+           && language_id == rhs.language_id && name_id == rhs.name_id
+           && str == rhs.str;
+}
 }

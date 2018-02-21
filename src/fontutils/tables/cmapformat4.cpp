@@ -1,19 +1,22 @@
 #include "cmapformat4.hpp"
 
-#include <vector>
-#include <unordered_map>
-#include <set>
+#include <cassert>
 #include <cmath>
+#include <set>
+#include <typeinfo>
+#include <unordered_map>
+#include <vector>
 
 namespace fontutils
 {
 
-CmapFormat4Subtable::CmapFormat4Subtable(uint16_t platform_id, uint16_t encoding_id)
+CmapFormat4Subtable::CmapFormat4Subtable(
+    uint16_t platform_id, uint16_t encoding_id)
     : CmapSubtable(platform_id, encoding_id)
 {
 }
 
-void CmapFormat4Subtable::parse(Buffer &dis)
+void CmapFormat4Subtable::parse(Buffer& dis)
 {
     auto format = dis.read<uint16_t>();
     if (format != 4)
@@ -53,7 +56,7 @@ void CmapFormat4Subtable::parse(Buffer &dis)
 
     // idRangeOffset
     std::vector<uint16_t> id_range_offset(seg_count);
-    std::vector<size_t> range_offset_start(seg_count);
+    std::vector<size_t>   range_offset_start(seg_count);
     for (int i = 0; i < seg_count; ++i)
     {
         range_offset_start[i] = dis.tell();
@@ -61,7 +64,7 @@ void CmapFormat4Subtable::parse(Buffer &dis)
     }
 
     // glyphIdArray
-    size_t gid_len = (length - 16 - 8 * seg_count) / 2;
+    size_t                gid_len = (length - 16 - 8 * seg_count) / 2;
     std::vector<uint16_t> gid_array(gid_len);
     dis.read<uint16_t>(gid_array.data(), gid_len);
 
@@ -96,7 +99,8 @@ void CmapFormat4Subtable::parse(Buffer &dis)
                     gid = gid_array[id] + id_delta[i];
                 }
             }
-            if (gid != 0) cmap[c] = gid;
+            if (gid != 0)
+                cmap[c] = gid;
             ++j;
         } while (c != end_code[i]);
     }
@@ -162,7 +166,8 @@ Buffer CmapFormat4Subtable::compile() const
 
             seg_list.push_back(seg);
 
-            if (it == cmap.end()) break;
+            if (it == cmap.end())
+                break;
 
             begin = code;
             offset = uint16_t(gid - code);
@@ -173,8 +178,8 @@ Buffer CmapFormat4Subtable::compile() const
             offset = -1;
     }
 
-    seg_list.push_back({0xFFFF, 0xFFFF, 0, 0});
-    for (auto &seg : seg_list)
+    seg_list.push_back({ 0xFFFF, 0xFFFF, 0, 0 });
+    for (auto& seg : seg_list)
     {
         if (seg.id_delta == 0)
             seg.id_range_offset += seg_list.size() * 2;
@@ -197,19 +202,19 @@ Buffer CmapFormat4Subtable::compile() const
     // rangeShift
     buf.add<uint16_t>(2 * seg_list.size() - search_range);
 
-    for (auto const &seg : seg_list)
+    for (auto const& seg : seg_list)
         buf.add<uint16_t>(seg.end_code);
 
     // reservedPad
     buf.add<uint16_t>(0);
 
-    for (auto const &seg : seg_list)
+    for (auto const& seg : seg_list)
         buf.add<uint16_t>(seg.start_code);
 
-    for (auto const &seg : seg_list)
+    for (auto const& seg : seg_list)
         buf.add<uint16_t>(seg.id_delta);
 
-    for (auto const &seg : seg_list)
+    for (auto const& seg : seg_list)
         buf.add<uint16_t>(seg.id_range_offset);
 
     buf.add<uint16_t>(gid_array.data(), gid_array.size());
@@ -217,4 +222,12 @@ Buffer CmapFormat4Subtable::compile() const
     return buf;
 }
 
+bool CmapFormat4Subtable::operator==(OTFTable const& rhs) const noexcept
+{
+    assert(typeid(*this) == typeid(rhs));
+    auto const& other = static_cast<CmapFormat4Subtable const&>(rhs);
+
+    return platform_id == other.platform_id && encoding_id == other.encoding_id
+           && language == other.language && cmap == other.cmap;
+}
 }

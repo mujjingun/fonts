@@ -55,8 +55,13 @@ TEST(token_writer, fontutils)
 
 TEST(write_font, fontutils)
 {
+    auto files = {
+        "data/NotoSansCJKkr-Regular.otf",
+        "data/SourceHanSansKR-Regular.otf",
+    };
+    for (auto open : files)
     {
-        std::ifstream file("data/NotoSansCJKkr-Regular.otf");
+        std::ifstream file(open);
         fontutils::Buffer buf(std::string{std::istreambuf_iterator<char>(file),
             std::istreambuf_iterator<char>() });
 
@@ -68,14 +73,16 @@ TEST(write_font, fontutils)
         otf.write(outbuf.data(), outbuf.size());
 
         std::cout << "OTF file Succesfully written.\n" << std::endl;
+
+        std::ifstream test_file("data/testout.otf");
+        fontutils::Buffer test_buf(std::string{ std::istreambuf_iterator<char>(test_file),
+            std::istreambuf_iterator<char>() });
+
+        fontutils::OffsetTable test_table;
+        test_table.parse(test_buf);
+
+        EXPECT_EQ(table, test_table);
     }
-
-    std::ifstream test_file("data/testout.otf");
-    fontutils::Buffer test_buf(std::string{ std::istreambuf_iterator<char>(test_file),
-        std::istreambuf_iterator<char>() });
-
-    fontutils::OffsetTable test_table;
-    test_table.parse(test_buf);
 }
 
 #if 0

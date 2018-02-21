@@ -311,7 +311,7 @@ static void call_subroutine(
 
             // alternate start horizontal, end vertical and
             // start vertical, end horizontal
-            for (int i = 0; i < int(stack.size()); i += 8)
+            for (int i = 0; i + 1 < int(stack.size()); i += 8)
             {
                 pos.x += stack[i];
                 Point ct1 = pos;
@@ -406,7 +406,7 @@ static void call_subroutine(
 
             // alternate start vertical, end horizontal and
             // start horizontal, end vertical
-            for (int i = 0; i < int(stack.size()); i += 8)
+            for (int i = 0; i + 1 < int(stack.size()); i += 8)
             {
                 pos.y += stack[i];
                 Point ct1 = pos;
@@ -731,8 +731,32 @@ Buffer write_charstring(Glyph const& glyph)
     {
         write_number(buf, path.start.x - pos.x);
         write_number(buf, path.start.y - pos.y);
-        write_op(buf, Op::rmoveto);
         pos = path.start;
+        write_op(buf, Op::rmoveto);
+
+        for (auto const& seg : path.segments)
+        {
+            if (seg.ct1 == seg.ct2 && seg.ct2 == seg.p)
+            {
+                write_number(buf, seg.p.x - pos.x);
+                write_number(buf, seg.p.y - pos.y);
+                pos = seg.p;
+                write_op(buf, Op::rlineto);
+            }
+            else
+            {
+                write_number(buf, seg.ct1.x - pos.x);
+                write_number(buf, seg.ct1.y - pos.y);
+                pos = seg.ct1;
+                write_number(buf, seg.ct2.x - pos.x);
+                write_number(buf, seg.ct2.y - pos.y);
+                pos = seg.ct2;
+                write_number(buf, seg.p.x - pos.x);
+                write_number(buf, seg.p.y - pos.y);
+                pos = seg.p;
+                write_op(buf, Op::rrcurveto);
+            }
+        }
     }
 
     write_op(buf, Op::endchar);

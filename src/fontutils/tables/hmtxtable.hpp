@@ -15,6 +15,8 @@ public:
     {
         uint16_t advance_width;
         int16_t lsb;
+
+        bool operator==(HMetric const& rhs) const noexcept;
     };
 
     std::vector<HMetric> metrics;
@@ -24,6 +26,7 @@ public:
     HmtxTable(size_t num_glyphs, size_t num_h_metrics);
     virtual void parse (Buffer &dis) override;
     virtual Buffer compile() const override;
+    virtual bool operator==(OTFTable const& rhs) const noexcept override;
 };
 
 }

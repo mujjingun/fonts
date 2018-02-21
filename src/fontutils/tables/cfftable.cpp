@@ -1,6 +1,8 @@
 #include "cfftable.hpp"
 
+#include <cassert>
 #include <sstream>
+#include <typeinfo>
 #include <unordered_map>
 #include <vector>
 
@@ -12,8 +14,8 @@ namespace fontutils
 {
 
 CFFTable::CFFTable()
+    : OTFTable("CFF ")
 {
-    id = "CFF ";
 }
 
 void CFFTable::parse(Buffer& dis)
@@ -52,7 +54,7 @@ void CFFTable::parse(Buffer& dis)
     auto dict_index = parse_index(dis);
 
     // parse sid strings index
-    auto string_index = parse_index(dis);
+    auto                     string_index = parse_index(dis);
     std::vector<std::string> sid{ standard_strings.begin(),
                                   standard_strings.end() };
     for (auto str : string_index)
@@ -71,17 +73,17 @@ void CFFTable::parse(Buffer& dis)
     // parse top dict
     for (auto dict : dict_index)
     {
-        auto orig_pos = dis.seek(dict.offset);
+        auto  orig_pos = dis.seek(dict.offset);
         auto& font = fonts[dict.index];
         auto& fontinfo = font.fontinfo;
 
         int charset_offset = -1;
-        size_t charstrings_offset;
-        size_t fdarray_offset;
-        size_t fdselect_offset;
+        int charstrings_offset = -1;
+        int fdarray_offset = -1;
+        int fdselect_offset = -1;
 
         std::vector<CFFToken> operands;
-        int is_first_op = true;
+        int                   is_first_op = true;
         while (dis.tell() < dict.offset + dict.length)
         {
             auto token = next_token(dis);
@@ -335,6 +337,9 @@ void CFFTable::parse(Buffer& dis)
         }
 
         // parse charstrings index
+        if (charstrings_offset == -1)
+            throw std::runtime_error(
+                "charstrings offset not present in top dict.");
         dis.seek(charstrings_offset);
         auto cs_index = parse_index(dis);
         auto n_glyphs = cs_index.count;
@@ -344,6 +349,8 @@ void CFFTable::parse(Buffer& dis)
         font.charset.resize(n_glyphs);
         font.charset[0] = 0;
 
+        if (charset_offset == -1)
+            throw std::runtime_error("charset offset not present in top dict.");
         dis.seek(charset_offset);
         auto charset_format = dis.read<uint8_t>();
         if (charset_format == 0)
@@ -356,7 +363,7 @@ void CFFTable::parse(Buffer& dis)
             for (int i = 1; i < n_glyphs;)
             {
                 auto s = dis.read<uint16_t>();
-                int n_left = dis.read<uint8_t>();
+                int  n_left = dis.read<uint8_t>();
                 while (i < n_glyphs && s <= s + n_left)
                     font.charset[i++] = s++;
             }
@@ -390,9 +397,9 @@ void CFFTable::parse(Buffer& dis)
             int n_ranges = dis.read<uint16_t>();
             for (int i = 0; i < n_ranges; ++i)
             {
-                int first = dis.read<uint16_t>();
+                int  first = dis.read<uint16_t>();
                 auto fd = dis.read<uint8_t>();
-                int end = dis.peek<uint16_t>();
+                int  end = dis.peek<uint16_t>();
                 for (int j = first; j < end; ++j)
                     font.fd_select[j] = fd;
             }
@@ -407,7 +414,7 @@ void CFFTable::parse(Buffer& dis)
         lsubrs.emplace_back(fd_index.count);
         for (auto fditem : fd_index)
         {
-            auto& font_dict = font.fd_array[fditem.index];
+            auto&  font_dict = font.fd_array[fditem.index];
             size_t priv_size, priv_offset;
 
             dis.seek(fditem.offset);
@@ -628,7 +635,7 @@ void CFFTable::parse(Buffer& dis)
     }
 
     // parse global subroutines
-    auto gsubr_index = parse_index(dis);
+    auto                     gsubr_index = parse_index(dis);
     std::vector<std::string> gsubrs;
     for (auto item : gsubr_index)
     {
@@ -675,7 +682,7 @@ Buffer CFFTable::compile() const
         std::vector<Buffer> names;
         for (auto const& font : fonts)
             names.push_back(Buffer(font.name));
-        buf.append(write_index(names));
+        buf.append(write_index(std::move(names)));
     }
 
     // string -> sid mapping
@@ -739,7 +746,7 @@ Buffer CFFTable::compile() const
             int first, fd;
         };
         std::vector<FDSelectRange> ranges;
-        int start = 0, val = font.fd_select[0];
+        int                        start = 0, val = font.fd_select[0];
         for (auto i = 1u; i < font.fd_select.size(); ++i)
         {
             int fd = font.fd_select[i];
@@ -750,6 +757,8 @@ Buffer CFFTable::compile() const
                 start = i;
             }
         }
+        ranges.push_back({ start, val });
+
         // number of ranges
         append_buf.add<uint16_t>(ranges.size());
 
@@ -775,7 +784,7 @@ Buffer CFFTable::compile() const
         {
             index.push_back(write_charstring(glyph));
         }
-        append_buf.append(write_index(index));
+        append_buf.append(write_index(std::move(index)));
     }
 
     // write Font Dict Array
@@ -803,7 +812,7 @@ Buffer CFFTable::compile() const
 
             index.push_back(std::move(fdbuf));
         }
-        append_buf.append(write_index(index));
+        append_buf.append(write_index(std::move(index)));
     }
 
     // write Private dict
@@ -813,7 +822,7 @@ Buffer CFFTable::compile() const
         for (auto const& font_dict : font.fd_array)
         {
             const Font::FontDict dflt{};
-            Buffer pbuf;
+            Buffer               pbuf;
 
             std::ostringstream start_marker_name;
             start_marker_name << "private/" << font.name << "/"
@@ -961,7 +970,7 @@ Buffer CFFTable::compile() const
 
             index.push_back(std::move(pbuf));
         }
-        append_buf.append(write_index(index));
+        append_buf.append(write_index(std::move(index)));
     }
 
     // write Local Subr INDEX
@@ -976,7 +985,7 @@ Buffer CFFTable::compile() const
             std::vector<Buffer> index;
 
             // write empty subrs for now
-            append_buf.append(write_index(index));
+            append_buf.append(write_index(std::move(index)));
         }
     }
 
@@ -984,9 +993,9 @@ Buffer CFFTable::compile() const
     std::vector<Buffer> dicts;
     for (auto const& font : fonts)
     {
-        auto const& fontinfo = font.fontinfo;
+        auto const&          fontinfo = font.fontinfo;
         const Font::FontInfo dflt{};
-        Buffer dict;
+        Buffer               dict;
 
         // write ROS
         write_token(dict, get_sid(fontinfo.registry));
@@ -1187,18 +1196,18 @@ Buffer CFFTable::compile() const
 
         dicts.push_back(std::move(dict));
     }
-    buf.append(write_index(dicts));
+    buf.append(write_index(std::move(dicts)));
 
     // write SID Strings INDEX
     {
-        const size_t std_size = standard_strings.size();
+        const size_t        std_size = standard_strings.size();
         std::vector<Buffer> sids(sid_map.size() - std_size);
         for (auto const& item : sid_map)
         {
             if (item.second >= std_size)
                 sids[item.second - std_size] = Buffer(item.first);
         }
-        buf.append(write_index(sids));
+        buf.append(write_index(std::move(sids)));
     }
 
     // write gsubr INDEX
@@ -1206,11 +1215,11 @@ Buffer CFFTable::compile() const
         std::vector<Buffer> index;
 
         // write empty subrs for now
-        buf.append(write_index(index));
+        buf.append(write_index(std::move(index)));
     }
 
     // add rest of the data
-    buf.append(append_buf);
+    buf.append(std::move(append_buf));
 
     // write actual offset values to placeholders
     for (auto const& font : fonts)
@@ -1303,5 +1312,59 @@ Buffer CFFTable::compile() const
     buf.seek(0);
 
     return buf;
+}
+
+bool CFFTable::operator==(OTFTable const& rhs) const noexcept
+{
+    assert(typeid(*this) == typeid(rhs));
+    auto const& other = static_cast<CFFTable const&>(rhs);
+
+    return fonts == other.fonts;
+}
+
+bool CFFTable::Font::operator==(Font const& rhs) const noexcept
+{
+    return name == rhs.name && fontinfo == rhs.fontinfo
+           && charset == rhs.charset && glyphs == rhs.glyphs
+           && fd_select == rhs.fd_select && fd_array == rhs.fd_array;
+}
+
+bool CFFTable::Font::FontDict::operator==(FontDict const& rhs) const noexcept
+{
+    return name == rhs.name && blue_values == rhs.blue_values
+           && other_blues == rhs.other_blues && family_blues == rhs.family_blues
+           && family_other_blues == rhs.family_other_blues
+           && blue_scale == rhs.blue_scale && blue_shift == rhs.blue_shift
+           && blue_fuzz == rhs.blue_fuzz && std_hw == rhs.std_hw
+           && std_vw == rhs.std_vw && stem_snap_h == rhs.stem_snap_h
+           && stem_snap_v == rhs.stem_snap_v && force_bold == rhs.force_bold
+           && language_group == rhs.language_group
+           && expansion_factor == rhs.expansion_factor
+           && initial_random_seed == rhs.initial_random_seed
+           && default_width_x == rhs.default_width_x
+           && nominal_width_x == rhs.nominal_width_x;
+}
+
+bool CFFTable::Font::FontInfo::operator==(FontInfo const& rhs) const noexcept
+{
+    return version == rhs.version && notice == rhs.notice
+           && copyright == rhs.copyright && fullname == rhs.fullname
+           && familyname == rhs.familyname && weight == rhs.weight
+           && is_fixed_pitch == rhs.is_fixed_pitch
+           && italic_angle == rhs.italic_angle
+           && underline_position == rhs.underline_position
+           && underline_thickness == rhs.underline_thickness
+           && paint_type == rhs.paint_type
+           && charstring_type == rhs.charstring_type
+           && font_matrix == rhs.font_matrix && unique_id == rhs.unique_id
+           && font_bbox == rhs.font_bbox && stroke_width == rhs.stroke_width
+           && xuid == rhs.xuid && postscript == rhs.postscript
+           && basefont_name == rhs.basefont_name
+           && basefont_blend == rhs.basefont_blend && registry == rhs.registry
+           && ordering == rhs.ordering && supplement == rhs.supplement
+           && cid_font_version == rhs.cid_font_version
+           && cid_font_revision == rhs.cid_font_revision
+           && cid_font_type == rhs.cid_font_type && cid_count == rhs.cid_count
+           && uid_base == rhs.uid_base;
 }
 }

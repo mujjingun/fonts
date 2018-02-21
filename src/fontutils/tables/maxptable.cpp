@@ -1,14 +1,17 @@
 #include "maxptable.hpp"
 
+#include <typeinfo>
+#include <cassert>
+
 namespace fontutils
 {
 
 MaxpTable::MaxpTable()
+    : OTFTable("maxp")
 {
-    id = "maxp";
 }
 
-void MaxpTable::parse(Buffer &dis)
+void MaxpTable::parse(Buffer& dis)
 {
     std::cout << "Parsing 'maxp'... " << std::endl;
 
@@ -40,4 +43,10 @@ Buffer MaxpTable::compile() const
     return buf;
 }
 
+bool MaxpTable::operator==(OTFTable const& rhs) const noexcept
+{
+    assert(typeid(*this) == typeid(rhs));
+    auto const& other = static_cast<MaxpTable const&>(rhs);
+    return version == other.version && num_glyphs == other.num_glyphs;
+}
 }
