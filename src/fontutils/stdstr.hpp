@@ -3,7 +3,7 @@
 
 #include <array>
 
-namespace fontutils
+namespace geul
 {
 extern std::array<char const*, 391> standard_strings;
 }

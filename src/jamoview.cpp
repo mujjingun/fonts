@@ -41,35 +41,23 @@ void JamoView::setEditable(bool editable)
     m_editable = editable;
 }
 
-Glyph *JamoView::glyph() const
+GlyphObject* JamoView::glyph() const
 {
     return m_glyph;
 }
 
-void JamoView::setGlyph(Glyph* glyph)
+void JamoView::setGlyph(GlyphObject* glyph)
 {
     m_glyph = glyph;
     update();
     emit glyphChanged();
 }
 
-QQuickFramebufferObject::Renderer *
-JamoView::createRenderer() const
+QQuickFramebufferObject::Renderer* JamoView::createRenderer() const
 {
     auto renderer = new JamoViewRenderer;
     connect(this, &JamoView::pressed, renderer, &JamoViewRenderer::pressed);
     connect(this, &JamoView::moved, renderer, &JamoViewRenderer::moved);
     connect(this, &JamoView::unpressed, renderer, &JamoViewRenderer::unpressed);
     return renderer;
-}
-
-QString JamoView::name() const
-{
-    return m_name;
-}
-
-void JamoView::setName(const QString &name)
-{
-    m_name = name;
-    emit nameChanged();
 }

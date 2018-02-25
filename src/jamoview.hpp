@@ -22,42 +22,30 @@
 #ifndef JAMOVIEW_HPP
 #define JAMOVIEW_HPP
 
+#include <QQuickFramebufferObject>
 #include <QQuickItem>
 #include <QString>
-#include <QQuickFramebufferObject>
 
-#include "jamoviewrenderer.hpp"
 #include "fontutils/glyph.hpp"
 #include "jamomodel.hpp"
+#include "jamoviewrenderer.hpp"
 
 class JamoView : public QQuickFramebufferObject
 {
     Q_OBJECT
-    Q_PROPERTY(QString name
-                READ name
-                WRITE setName
-                NOTIFY nameChanged)
-    Q_PROPERTY(Glyph *glyph
-               READ glyph
-               WRITE setGlyph
-               NOTIFY glyphChanged)
-    Q_PROPERTY(bool editable
-               READ editable
-               WRITE setEditable)
+    Q_PROPERTY(GlyphObject* glyph READ glyph WRITE setGlyph NOTIFY glyphChanged)
+    Q_PROPERTY(bool editable READ editable WRITE setEditable)
 
 public:
     JamoView();
 
-    QString name() const;
-    void setName(const QString &name);
-
-    Glyph *glyph() const;
-    void setGlyph(Glyph *glyph);
+    GlyphObject* glyph() const;
+    void         setGlyph(GlyphObject* glyph);
 
     bool editable() const;
     void setEditable(bool editable);
 
-    QQuickFramebufferObject::Renderer *createRenderer() const override;
+    QQuickFramebufferObject::Renderer* createRenderer() const override;
 
 signals:
     void nameChanged() const;
@@ -67,10 +55,9 @@ signals:
     void unpressed(int x, int y) const;
 
 private:
-    QString m_name = "";
-    Glyph *m_glyph = nullptr;
-    bool m_editable = false;
-    JamoViewRenderer *m_renderer = nullptr;
+    GlyphObject*      m_glyph = nullptr;
+    bool              m_editable = false;
+    JamoViewRenderer* m_renderer = nullptr;
 };
 
 #endif

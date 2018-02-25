@@ -1,15 +1,14 @@
 #include "nametable.hpp"
 
-#include <typeinfo>
 #include <cassert>
+#include <typeinfo>
 
-namespace fontutils
+namespace geul
 {
 
 NameTable::NameTable()
-    : OTFTable("name")
-{
-}
+    : OTFTable(tag)
+{}
 
 void NameTable::parse(Buffer& dis)
 {
@@ -43,7 +42,9 @@ void NameTable::parse(Buffer& dis)
         }
     }
     else
+    {
         throw std::runtime_error("Unrecognized name table format");
+    }
 }
 
 Buffer NameTable::compile() const
@@ -60,24 +61,26 @@ Buffer NameTable::compile() const
 
         Buffer strings;
         size_t off = 0;
-        for (auto i = 0u; i < records.size(); ++i)
+        for (auto const& record : records)
         {
-            buf.add<uint16_t>(records[i].platform_id);
-            buf.add<uint16_t>(records[i].encoding_id);
-            buf.add<uint16_t>(records[i].language_id);
-            buf.add<uint16_t>(records[i].name_id);
+            buf.add<uint16_t>(record.platform_id);
+            buf.add<uint16_t>(record.encoding_id);
+            buf.add<uint16_t>(record.language_id);
+            buf.add<uint16_t>(record.name_id);
 
-            buf.add<uint16_t>(records[i].str.size());
+            buf.add<uint16_t>(record.str.size());
             buf.add<uint16_t>(off);
 
-            off += records[i].str.size();
-            strings.append(Buffer(records[i].str));
+            off += record.str.size();
+            strings.append(Buffer(record.str));
         }
 
         buf.append(std::move(strings));
     }
     else
+    {
         throw std::runtime_error("Unrecognized name table format");
+    }
 
     return buf;
 }

@@ -5,7 +5,7 @@
 #include <pugixml.hpp>
 
 #include "fontutils/cffutils.hpp"
-#include "fontutils/tables/offsettable.hpp"
+#include "fontutils/tables/font.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -14,46 +14,46 @@ int main(int argc, char* argv[])
     return RUN_ALL_TESTS();
 }
 
-TEST(token_writer, fontutils)
+TEST(token_writer, geul)
 {
-    fontutils::Buffer buf1, buf2;
-    fontutils::write_token(buf1, -2.25);
-    auto t1 = fontutils::next_token(buf1);
-    EXPECT_EQ(t1.get_type(), fontutils::CFFToken::Type::floating);
+    geul::Buffer buf1, buf2;
+    geul::write_token(buf1, -2.25);
+    auto t1 = geul::next_token(buf1);
+    EXPECT_EQ(t1.get_type(), geul::CFFToken::Type::floating);
     EXPECT_DOUBLE_EQ(t1.to_double(), -2.25);
 
-    fontutils::write_token(buf2, 0.140541E-3);
-    auto t2 = fontutils::next_token(buf2);
-    EXPECT_EQ(t2.get_type(), fontutils::CFFToken::Type::floating);
+    geul::write_token(buf2, 0.140541E-3);
+    auto t2 = geul::next_token(buf2);
+    EXPECT_EQ(t2.get_type(), geul::CFFToken::Type::floating);
     EXPECT_DOUBLE_EQ(t2.to_double(), 0.140541E-3);
 
     for (int i = -2000; i < 2000; ++i)
     {
-        fontutils::Buffer buf;
-        fontutils::write_token(buf, i);
-        auto t = fontutils::next_token(buf);
-        EXPECT_EQ(t.get_type(), fontutils::CFFToken::Type::integer);
+        geul::Buffer buf;
+        geul::write_token(buf, i);
+        auto t = geul::next_token(buf);
+        EXPECT_EQ(t.get_type(), geul::CFFToken::Type::integer);
         EXPECT_DOUBLE_EQ(t.to_int(), i);
     }
 
     {
-        fontutils::Buffer buf;
-        fontutils::write_token(buf, -12312312);
-        auto t = fontutils::next_token(buf);
-        EXPECT_EQ(t.get_type(), fontutils::CFFToken::Type::integer);
+        geul::Buffer buf;
+        geul::write_token(buf, -12312312);
+        auto t = geul::next_token(buf);
+        EXPECT_EQ(t.get_type(), geul::CFFToken::Type::integer);
         EXPECT_DOUBLE_EQ(t.to_int(), -12312312);
     }
 
     {
-        fontutils::Buffer buf;
-        fontutils::write_token(buf, 12312312);
-        auto t = fontutils::next_token(buf);
-        EXPECT_EQ(t.get_type(), fontutils::CFFToken::Type::integer);
+        geul::Buffer buf;
+        geul::write_token(buf, 12312312);
+        auto t = geul::next_token(buf);
+        EXPECT_EQ(t.get_type(), geul::CFFToken::Type::integer);
         EXPECT_DOUBLE_EQ(t.to_int(), 12312312);
     }
 }
 
-TEST(write_font, fontutils)
+TEST(write_font, geul)
 {
     auto files = {
         "data/NotoSansCJKkr-Regular.otf",
@@ -62,23 +62,24 @@ TEST(write_font, fontutils)
     for (auto open : files)
     {
         std::ifstream file(open);
-        fontutils::Buffer buf(std::string{std::istreambuf_iterator<char>(file),
-            std::istreambuf_iterator<char>() });
+        geul::Buffer  buf(std::string{ std::istreambuf_iterator<char>(file),
+                                      std::istreambuf_iterator<char>() });
 
-        fontutils::OffsetTable table;
+        geul::Font table;
         table.parse(buf);
 
         std::ofstream otf("data/testout.otf");
-        auto outbuf = table.compile();
+        auto          outbuf = table.compile();
         otf.write(outbuf.data(), outbuf.size());
 
         std::cout << "OTF file Succesfully written.\n" << std::endl;
 
         std::ifstream test_file("data/testout.otf");
-        fontutils::Buffer test_buf(std::string{ std::istreambuf_iterator<char>(test_file),
-            std::istreambuf_iterator<char>() });
+        geul::Buffer  test_buf(
+            std::string{ std::istreambuf_iterator<char>(test_file),
+                         std::istreambuf_iterator<char>() });
 
-        fontutils::OffsetTable test_table;
+        geul::Font test_table;
         test_table.parse(test_buf);
 
         EXPECT_EQ(table, test_table);

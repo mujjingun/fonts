@@ -5,7 +5,7 @@
 
 #include <vector>
 
-namespace fontutils
+namespace geul
 {
 
 class HmtxTable : public OTFTable
@@ -14,7 +14,7 @@ public:
     struct HMetric
     {
         uint16_t advance_width;
-        int16_t lsb;
+        int16_t  lsb;
 
         bool operator==(HMetric const& rhs) const noexcept;
     };
@@ -24,11 +24,12 @@ public:
 
 public:
     HmtxTable(size_t num_glyphs, size_t num_h_metrics);
-    virtual void parse (Buffer &dis) override;
+    virtual void   parse(Buffer& dis) override;
     virtual Buffer compile() const override;
-    virtual bool operator==(OTFTable const& rhs) const noexcept override;
-};
+    virtual bool   operator==(OTFTable const& rhs) const noexcept override;
 
+    static constexpr char const* tag = "hmtx";
+};
 }
 
 #endif

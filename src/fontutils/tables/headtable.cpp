@@ -1,21 +1,21 @@
 #include "headtable.hpp"
 
+#include <cassert>
 #include <chrono>
 #include <ctime>
 #include <typeinfo>
-#include <cassert>
 
-namespace fontutils
+namespace geul
 {
 
 static time_t timestamp()
 {
-    std::time_t now = std::time(0);
+    std::time_t now = std::time(nullptr);
     return now + 2082844800;
 }
 
 HeadTable::HeadTable()
-    : OTFTable("head")
+    : OTFTable(tag)
 {
     using namespace std::chrono;
 

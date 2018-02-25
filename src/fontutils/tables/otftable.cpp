@@ -2,29 +2,35 @@
 
 #include <cmath>
 
-namespace fontutils {
+namespace geul
+{
 
 OTFTable::OTFTable(std::string id)
-    : id(id)
+    : id_(std::move(id))
 {}
 
-uint32_t calculate_checksum (Buffer &dis, size_t length)
+std::string OTFTable::id() const
 {
-   uint32_t checksum = 0;
-   uint32_t l;
+    return id_;
+}
 
-   l = (length % 4 > 0) ? length / 4 + 1 : length / 4;
+uint32_t calculate_checksum(Buffer& dis, size_t length)
+{
+    uint32_t checksum = 0;
+    uint32_t l;
 
-   for (uint32_t i = 0; i < l; i++) {
-       checksum += dis.read<uint32_t>();
-   }
+    l = (length % 4 > 0) ? length / 4 + 1 : length / 4;
 
-   return checksum;
+    for (uint32_t i = 0; i < l; i++)
+    {
+        checksum += dis.read<uint32_t>();
+    }
+
+    return checksum;
 }
 
 int le_pow2(int num)
 {
     return 1 << std::ilogb(num);
 }
-
 }

@@ -4,14 +4,13 @@
 #include <typeinfo>
 #include <vector>
 
-namespace fontutils
+namespace geul
 {
 
 CmapFormat12Subtable::CmapFormat12Subtable(
     uint16_t platform_id, uint16_t encoding_id)
     : CmapSubtable(platform_id, encoding_id)
-{
-}
+{}
 
 void CmapFormat12Subtable::parse(Buffer& dis)
 {

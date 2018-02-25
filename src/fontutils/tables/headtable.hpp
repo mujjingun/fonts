@@ -5,7 +5,7 @@
 
 #include <limits>
 
-namespace fontutils
+namespace geul
 {
 
 class HeadTable : public OTFTable
@@ -16,7 +16,7 @@ public:
     int16_t xmax = std::numeric_limits<int16_t>::max();
     int16_t ymax = std::numeric_limits<int16_t>::max();
 
-    uint16_t units_per_em;
+    uint16_t units_per_em = 1000;
 
     uint16_t mac_style;
     uint16_t lowest_PPEM;
@@ -42,9 +42,11 @@ public:
 
 public:
     HeadTable();
-    virtual void parse(Buffer& dis) override;
+    virtual void   parse(Buffer& dis) override;
     virtual Buffer compile() const override;
-    virtual bool operator==(OTFTable const& rhs) const noexcept override;
+    virtual bool   operator==(OTFTable const& rhs) const noexcept override;
+
+    static constexpr char const* tag = "head";
 };
 }
 

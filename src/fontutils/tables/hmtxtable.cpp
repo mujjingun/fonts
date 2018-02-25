@@ -1,17 +1,16 @@
 #include "hmtxtable.hpp"
 
-#include <typeinfo>
 #include <cassert>
+#include <typeinfo>
 
-namespace fontutils
+namespace geul
 {
 
 HmtxTable::HmtxTable(size_t num_glyphs, size_t num_h_metrics)
-    : OTFTable("hmtx")
+    : OTFTable(tag)
     , metrics(num_h_metrics)
     , lsbs(num_glyphs - num_h_metrics)
-{
-}
+{}
 
 void HmtxTable::parse(Buffer& dis)
 {

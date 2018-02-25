@@ -1,20 +1,10 @@
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
-endif()
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
-set(CMAKE_CXX_FLAGS_DEBUG "-g")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
 set(UTILS_SOURCE_FILES
     buffer.cpp
     stdstr.cpp
     cffutils.cpp
     csparser.cpp
     glyph.cpp
+    otfparser.cpp
 
     tables/otftable.cpp
     tables/headtable.cpp
@@ -29,7 +19,7 @@ set(UTILS_SOURCE_FILES
     tables/maxptable.cpp
     tables/os2table.cpp
     tables/posttable.cpp
-    tables/offsettable.cpp
+    tables/font.cpp
     tables/generictable.cpp
     tables/cfftable.cpp
     )
@@ -38,3 +28,9 @@ target_link_libraries(${PROJECT_NAME}utils PRIVATE)
 target_include_directories(${PROJECT_NAME}utils PRIVATE
     ${PROJECT_SOURCE_DIR}/src
     )
+set_target_properties(${PROJECT_NAME}utils PROPERTIES
+    COMPILE_FLAGS "-Wall -Wextra -pedantic"
+    CXX_STANDARD 14
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+    CXX_CLANG_TIDY "${DO_CLANG_TIDY}")

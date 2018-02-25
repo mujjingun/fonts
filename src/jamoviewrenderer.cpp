@@ -101,17 +101,16 @@ void JamoViewRenderer::rebuild_outlines(QOpenGLFunctions* f)
     QVector<QVector2D> verts;
 
     verts << QVector2D(0, 0);
-    /*
     if (m_glyph)
     {
-        for (auto &path : m_glyph->glyph().paths)
+        for (auto &path : m_glyph->glyph.paths)
         {
-            verts << QVector2D(path.start().x, path.start().y);
+            verts << QVector2D(path.start.x, path.start.y);
             //m_verts.append({path.start(), verts.size() - 1});
             m_point_indices << verts.size() - 1;
             int start_idx = verts.size() - 1;
 
-            for (auto const& seg : path.segments())
+            for (auto const& seg : path.segments)
             {
                 QVector2D b0 = verts[verts.size() - 1];
                 QVector2D b1(seg.ct1.x, seg.ct1.y);
@@ -137,7 +136,6 @@ void JamoViewRenderer::rebuild_outlines(QOpenGLFunctions* f)
             m_indices << 0 << verts.size() - 1 << start_idx;
         }
     }
-    */
 
     QOpenGLVertexArrayObject::Binder vao_binder(&m_outlineVAO);
     m_outlineVBO.create();
@@ -158,11 +156,12 @@ void JamoViewRenderer::rebuild_grid(QOpenGLFunctions* f)
     grid_verts << QVector3D(0, -1000, 1) << QVector3D(0, 1000, 1);
     m_grid_indices << 0 << 1 << 2 << 3;
 
-    /*
-    int width = m_glyph->glyph().width;
-    verts << QVector2D(width, -1000) << QVector2D(width, 1000);
-    grid_indices << 4 << 5;
-    */
+    if (m_glyph)
+    {
+        int width = m_glyph->glyph.width;
+        grid_verts << QVector2D(width, -1000) << QVector2D(width, 1000);
+        m_grid_indices << 4 << 5;
+    }
 
     QOpenGLVertexArrayObject::Binder vao_binder(&m_gridVAO);
     m_gridVBO.create();
@@ -255,9 +254,9 @@ void JamoViewRenderer::render()
     program->bind();
     program->setUniformValue(loc_transform, m_DU_to_GL);
 
-    f->glClearColor(1, 1, 1, 1);
     f->glDisable(GL_DEPTH_TEST);
     f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    f->glClearColor(1, 1, 1, 0);
 
     m_outlineVAO.bind();
     program->setUniformValue(loc_color, QVector3D(1, 1, 1));
@@ -305,7 +304,6 @@ void JamoViewRenderer::synchronize(QQuickFramebufferObject* item)
 {
     JamoView *fbitem = static_cast<JamoView *>(item);
     m_view = fbitem;
-    m_name = fbitem->name();
     m_glyph = fbitem->glyph();
     m_editable = fbitem->editable();
     m_dirty = true;

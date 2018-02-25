@@ -3,7 +3,7 @@
 
 #include "otftable.hpp"
 
-namespace fontutils
+namespace geul
 {
 
 class GenericTable : public OTFTable
@@ -12,11 +12,10 @@ class GenericTable : public OTFTable
 
 public:
     GenericTable(std::string tag, size_t length);
-    virtual void parse(Buffer &dis) override;
+    virtual void   parse(Buffer& dis) override;
     virtual Buffer compile() const override;
-    virtual bool operator==(OTFTable const& rhs) const noexcept override;
+    virtual bool   operator==(OTFTable const& rhs) const noexcept override;
 };
-
 }
 
 #endif

@@ -7,13 +7,15 @@
 #include "buffer.hpp"
 #include "glyph.hpp"
 
-namespace fontutils
+namespace geul
 {
 
 Glyph parse_charstring(
-    std::string const& cs,
+    std::string const&              cs,
     std::vector<std::string> const& gsubrs,
-    std::vector<std::string> const& lsubrs);
+    std::vector<std::string> const& lsubrs,
+    int                             default_width,
+    int                             nominal_width);
 
 Buffer write_charstring(Glyph const& glyph);
 }

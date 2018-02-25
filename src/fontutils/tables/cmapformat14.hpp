@@ -6,7 +6,7 @@
 #include <map>
 #include <vector>
 
-namespace fontutils
+namespace geul
 {
 
 class CmapFormat14Subtable : public CmapSubtable
@@ -15,7 +15,7 @@ public:
     struct DefaultUVSRange
     {
         char32_t start_val;
-        int count;
+        int      count;
 
         bool operator==(DefaultUVSRange const& rhs) const noexcept;
     };
@@ -39,11 +39,10 @@ public:
 
 public:
     CmapFormat14Subtable(uint16_t platform_id, uint16_t encoding_id);
-    virtual void parse (Buffer &dis) override;
+    virtual void   parse(Buffer& dis) override;
     virtual Buffer compile() const override;
-    virtual bool operator==(OTFTable const& rhs) const noexcept override;
+    virtual bool   operator==(OTFTable const& rhs) const noexcept override;
 };
-
 }
 
 #endif

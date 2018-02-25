@@ -25,6 +25,7 @@ import QtQuick.Controls 2.3
 import QtQuick.Layouts 1.3
 import QtQuick.Dialogs 1.0
 import QtGraphicalEffects 1.0
+import QtQuick.Dialogs 1.1
 import fontmaker 1.0
 
 ApplicationWindow {
@@ -37,32 +38,66 @@ ApplicationWindow {
 
     SystemPalette { id: activePalette }
 
-    signal fileImportSignal(var filename)
-    signal fileLoaded()
+    signal fileImportSignal(string filename)
+    signal fileLoadFinished()
 
-    onFileLoaded: {
-        busy.visible = false;
+    onFileLoadFinished: {
+        busy.loading = false;
     }
 
     FileDialog {
-        id: fileDialog
+        id: fileImportDialog
         title: qsTr("Please choose a file")
         folder: shortcuts.home
+        selectExisting: true
         onAccepted: {
-            window.fileImportSignal(fileDialog.fileUrl);
-            busy.visible = true;
+            window.fileImportSignal(fileUrl);
+            busy.loading = true;
         }
+    }
+
+    signal fileExportSignal(string filename)
+    signal fileExportFinished()
+
+    onFileExportFinished: {
+        busy.loading = false;
+    }
+
+    FileDialog {
+        id: fileExportDialog
+        title: qsTr("Please choose a location")
+        folder: shortcuts.home
+        selectExisting: false
+
+        onAccepted: {
+            window.fileExportSignal(fileUrl);
+            busy.loading = true;
+        }
+    }
+
+    signal alert(int type, string title, string text)
+
+    onAlert: {
+        messageDialog.icon = type;
+        messageDialog.title = title;
+        messageDialog.text = text;
+        messageDialog.open();
+    }
+
+    MessageDialog {
+        id: messageDialog
     }
 
     Rectangle {
         id: busy
+        property bool loading: false
         anchors.fill: parent
+        color: "#88ffffff"
         z: 10000
-        visible: false
-        color: "transparent"
+        visible: loading
         BusyIndicator {
             anchors.centerIn: parent
-            running: true
+            running: parent.loading
             z: 10001
         }
     }
@@ -86,10 +121,11 @@ ApplicationWindow {
             MenuSeparator { }
             Action {
                 text: qsTr("&Import from OTF...")
-                onTriggered: fileDialog.open()
+                onTriggered: fileImportDialog.open()
             }
             Action {
                 text: qsTr("&Export to OTF...")
+                onTriggered: fileExportDialog.open()
             }
             MenuSeparator { }
             Action {
@@ -136,14 +172,13 @@ ApplicationWindow {
                 anchors {
                     top: parent.top;
                     left: parent.left;
-                    margins: 4
+                    margins: 10
                 }
             }
 
-            Rectangle {
+            Item {
                 id: consonants_view
                 height: flow.height
-                color: "transparent"
                 anchors {
                     top: consonants_title.bottom;
                     left: parent.left; right: parent.right
@@ -153,7 +188,8 @@ ApplicationWindow {
                     id: flow
                     anchors.centerIn: parent
                     width: parent.width
-                    spacing: 10
+                    spacing: 5
+                    padding: 5
 
                     Repeater {
                         id: jamorepeat
@@ -170,7 +206,7 @@ ApplicationWindow {
                 anchors {
                     top: consonants_view.bottom
                     left: parent.left
-                    margins: 4
+                    margins: 10
                 }
             }
 
@@ -185,8 +221,7 @@ ApplicationWindow {
             }
         }
 
-        Rectangle {
-            color: "transparent"
+        Item {
 
             DropShadow {
                 anchors.fill: jamoedit
@@ -205,7 +240,6 @@ ApplicationWindow {
                 anchors.bottom: parent.bottom
                 width: height
                 anchors.margins: 8
-                name: ""
                 editable: true
             }
 
@@ -218,8 +252,7 @@ ApplicationWindow {
             }
         }
 
-        Rectangle {
-            color: "transparent"
+        Item {
         }
     }
 

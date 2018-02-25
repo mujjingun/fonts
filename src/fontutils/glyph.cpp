@@ -1,6 +1,6 @@
 #include "glyph.hpp"
 
-namespace fontutils
+namespace geul
 {
 
 bool Point::operator==(Point rhs) const noexcept
@@ -11,8 +11,7 @@ bool Point::operator==(Point rhs) const noexcept
 Path::Path(Point start)
     : start(start)
     , segments{}
-{
-}
+{}
 
 void Path::lineto(Point p)
 {

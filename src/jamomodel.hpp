@@ -4,31 +4,15 @@
 #include <QObject>
 #include <QString>
 #include <QList>
-#include <QMap>
 #include <QAbstractListModel>
 #include <QPoint>
 
+#include <memory>
+#include <map>
+
 #include "fontutils/glyph.hpp"
 #include "jamonames.hpp"
-
-class Glyph : public QObject
-{
-    Q_OBJECT
-public:
-    Glyph(fontutils::Glyph g, QObject *parent);
-
-    fontutils::Glyph glyph();
-
-private:
-    fontutils::Glyph m_glyph;
-};
-Q_DECLARE_METATYPE(Glyph*)
-
-struct Jamo
-{
-    QString name;
-    Glyph *glyph = nullptr;
-};
+#include "formmodel.hpp"
 
 class JamoModel : public QAbstractListModel
 {
@@ -36,12 +20,12 @@ class JamoModel : public QAbstractListModel
 public:
     enum JamoModelRoles {
         NameRole = Qt::UserRole + 1,
-        GlyphRole
+        FormModelRole
     };
 
     JamoModel(QList<JamoName> names, QObject *parent = nullptr);
 
-    void setJamo(JamoName name, Jamo jamo);
+    void setGlyph(JamoName name, geul::Glyph const& glyph);
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
 
@@ -49,11 +33,10 @@ public:
 
     Qt::ItemFlags flags(const QModelIndex &index) const override;
 
-protected:
     QHash<int, QByteArray> roleNames() const override;
 
 private:
-    QMap<JamoName, Jamo> m_jamos;
+    std::map<JamoName, std::unique_ptr<FormModel>> m_jamos;
 };
 
 #endif

@@ -3,21 +3,23 @@
 
 #include "otftable.hpp"
 
-namespace fontutils
+namespace geul
 {
 
 class MaxpTable : public OTFTable
 {
 public:
-    Fixed version;
+    Fixed  version;
     size_t num_glyphs;
+
 public:
     MaxpTable();
-    virtual void parse(Buffer &dis) override;
+    virtual void   parse(Buffer& dis) override;
     virtual Buffer compile() const override;
-    virtual bool operator==(OTFTable const& rhs) const noexcept override;
-};
+    virtual bool   operator==(OTFTable const& rhs) const noexcept override;
 
+    static constexpr char const* tag = "maxp";
+};
 }
 
 #endif

@@ -3,7 +3,7 @@
 
 #include "otftable.hpp"
 
-namespace fontutils
+namespace geul
 {
 
 class HheaTable : public OTFTable
@@ -24,9 +24,11 @@ public:
 
 public:
     HheaTable();
-    virtual void parse(Buffer& dis) override;
+    virtual void   parse(Buffer& dis) override;
     virtual Buffer compile() const override;
-    virtual bool operator==(OTFTable const& rhs) const noexcept override;
+    virtual bool   operator==(OTFTable const& rhs) const noexcept override;
+
+    static constexpr char const* tag = "hhea";
 };
 }
 

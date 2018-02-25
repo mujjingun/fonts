@@ -1,6 +1,6 @@
 #include "buffer.hpp"
 
-namespace fontutils
+namespace geul
 {
 
 template <> char to_machine_endian(char const* buf)
@@ -146,20 +146,18 @@ template <> void to_big_endian(char* buf, Tag t)
 
 Buffer::Buffer(std::string&& data)
     : arr(std::move(data))
-{
-}
+{}
 
 Buffer::Buffer(std::string const& data)
     : arr(data)
-{
-}
+{}
 
 void Buffer::add_nbytes(int n, uint32_t t)
 {
     if (n <= 0 || n > 4)
         throw std::runtime_error("cannot read n-byte integer");
 
-    int shift = (n - 1) * 8;
+    int      shift = (n - 1) * 8;
     uint32_t mask = 0xff << shift;
     for (int i = 0; i < n; ++i)
     {

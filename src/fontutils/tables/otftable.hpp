@@ -9,14 +9,11 @@
 
 #include "../buffer.hpp"
 
-namespace fontutils
+namespace geul
 {
 
 class OTFTable
 {
-public:
-    const std::string id;
-
 public:
     // Pure abstract class, not instantiable
 
@@ -33,6 +30,11 @@ public:
 
     /// Compare equality
     virtual bool operator==(OTFTable const& rhs) const noexcept = 0;
+
+    std::string id() const;
+
+private:
+    std::string id_;
 };
 
 uint32_t calculate_checksum(Buffer& dis, size_t length);

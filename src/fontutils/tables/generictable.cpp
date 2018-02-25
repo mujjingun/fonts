@@ -1,20 +1,20 @@
 #include "generictable.hpp"
 
-#include <typeinfo>
 #include <cassert>
+#include <typeinfo>
 
-namespace fontutils
+namespace geul
 {
 
 GenericTable::GenericTable(std::string tag, size_t length)
-    : OTFTable(tag)
+    : OTFTable(std::move(tag))
 {
     data.resize(length);
 }
 
 void GenericTable::parse(Buffer& dis)
 {
-    std::cout << "Unsupported table '" << id << "'... " << std::endl;
+    std::cout << "Unsupported table '" << id() << "'... " << std::endl;
 
     dis.read<char>(&data[0], data.size());
 }
@@ -26,7 +26,7 @@ Buffer GenericTable::compile() const
 
 bool GenericTable::operator==(OTFTable const& rhs) const noexcept
 {
-    assert(id == rhs.id && typeid(*this) == typeid(rhs));
+    assert(id() == rhs.id() && typeid(*this) == typeid(rhs));
     auto const& other = static_cast<GenericTable const&>(rhs);
     return data == other.data;
 }

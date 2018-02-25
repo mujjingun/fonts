@@ -5,7 +5,7 @@
 
 #include <vector>
 
-namespace fontutils
+namespace geul
 {
 
 class NameTable : public OTFTable
@@ -26,9 +26,11 @@ public:
 
 public:
     NameTable();
-    virtual void parse(Buffer& dis) override;
+    virtual void   parse(Buffer& dis) override;
     virtual Buffer compile() const override;
-    virtual bool operator==(OTFTable const& rhs) const noexcept override;
+    virtual bool   operator==(OTFTable const& rhs) const noexcept override;
+
+    static constexpr char const* tag = "name";
 };
 }
 

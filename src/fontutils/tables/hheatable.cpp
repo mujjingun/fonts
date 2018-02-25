@@ -1,15 +1,14 @@
 #include "hheatable.hpp"
 
-#include <typeinfo>
 #include <cassert>
+#include <typeinfo>
 
-namespace fontutils
+namespace geul
 {
 
 HheaTable::HheaTable()
-    : OTFTable("hhea")
-{
-}
+    : OTFTable(tag)
+{}
 
 void HheaTable::parse(Buffer& dis)
 {

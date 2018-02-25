@@ -19,69 +19,70 @@
 **
 ****************************************************************************/
 
-
+#include <QDebug>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlComponent>
-#include <QDebug>
-#include <QQuickItem>
 #include <QQmlContext>
+#include <QQuickItem>
 
 #include <memory>
 
+#include "formmodel.hpp"
 #include "jamomodel.hpp"
-#include "menuhandler.hpp"
 #include "jamoview.hpp"
+#include "controller.hpp"
 
 /* Goals
  * 1. Make Hangul Fonts (11172 forms) from scratch
  * 2. Save to project file
  * 3. Open project file
- * 4. (?) Import font from .otf
-*/
+ * 4. Import font from .otf - done!
+ */
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     qDebug() << "Qt Version: " << qVersion();
     QGuiApplication app(argc, argv);
 
-    JamoModel consonant_model({
-        JamoName::KIYEOK,
-        JamoName::SSANGKIYEOK,
-        JamoName::NIEUN,
-        JamoName::TIKEUT,
-        JamoName::SSANGTIKEUT,
-        JamoName::RIEUL,
-        JamoName::MIEUM,
-        JamoName::PIEUP,
-        JamoName::SSANGPIEUP,
-        JamoName::SIOS,
-        JamoName::SSANGSIOS,
-        JamoName::IEUNG,
-        JamoName::CIEUC,
-        JamoName::SSANGCIEUC,
-        JamoName::CHIEUCH,
-        JamoName::KHIEUHK,
-        JamoName::THIEUTH,
-        JamoName::PHIEUPH,
-        JamoName::HEIUH
-    });
+    JamoModel consonant_model(
+        { JamoName::KIYEOK,
+          JamoName::SSANGKIYEOK,
+          JamoName::NIEUN,
+          JamoName::TIKEUT,
+          JamoName::SSANGTIKEUT,
+          JamoName::RIEUL,
+          JamoName::MIEUM,
+          JamoName::PIEUP,
+          JamoName::SSANGPIEUP,
+          JamoName::SIOS,
+          JamoName::SSANGSIOS,
+          JamoName::IEUNG,
+          JamoName::CIEUC,
+          JamoName::SSANGCIEUC,
+          JamoName::CHIEUCH,
+          JamoName::KHIEUHK,
+          JamoName::THIEUTH,
+          JamoName::PHIEUPH,
+          JamoName::HEIUH },
+        &app);
 
     // Register Types
     qmlRegisterType<JamoView>("fontmaker", 1, 0, "JamoView");
-    qmlRegisterUncreatableType<Glyph>("fontmaker", 1, 0, "Glyph", "Glyph is uncreatable.");
+    qmlRegisterType<FormModel>("fontmaker", 1, 0, "FormModel");
 
     // Make Window
     QQmlApplicationEngine engine;
-    QQmlContext *context = engine.rootContext();
+    QQmlContext*          context = engine.rootContext();
     context->setContextProperty("consonantJamoModel", &consonant_model);
 
-    QQmlComponent window_comp(&engine, QUrl(QStringLiteral("qrc:/qml/main.qml")));
+    QQmlComponent window_comp(
+        &engine, QUrl(QStringLiteral("qrc:/qml/main.qml")));
     std::unique_ptr<QObject> window(window_comp.create());
     if (window_comp.isError())
         qDebug() << window_comp.errorString();
 
-    MenuHandler menuhandler(window.get(), &consonant_model);
+    Controller menuhandler(window.get(), &consonant_model);
 
     return app.exec();
 }

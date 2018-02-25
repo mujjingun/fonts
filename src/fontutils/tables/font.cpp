@@ -1,4 +1,4 @@
-#include "offsettable.hpp"
+#include "font.hpp"
 
 #include "cfftable.hpp"
 #include "cmaptable.hpp"
@@ -18,13 +18,12 @@
 #include <sstream>
 #include <typeinfo>
 
-namespace fontutils
+namespace geul
 {
 
-OffsetTable::OffsetTable()
+Font::Font()
     : OTFTable("sfnt")
-{
-}
+{}
 
 // Factory method for making tables
 static std::unique_ptr<OTFTable>
@@ -44,6 +43,10 @@ make_table(std::string name, Buffer& dis, size_t offset, size_t length)
         table = std::make_unique<PostTable>();
     else if (name == "CFF ")
         table = std::make_unique<CFFTable>();
+    else if (name == "maxp")
+        table = std::make_unique<MaxpTable>();
+    else if (name == "hhea")
+        table = std::make_unique<HheaTable>();
     else
         table = std::make_unique<GenericTable>(name, length);
 
@@ -54,7 +57,7 @@ make_table(std::string name, Buffer& dis, size_t offset, size_t length)
     return table;
 }
 
-void OffsetTable::parse(Buffer& dis)
+void Font::parse(Buffer& dis)
 {
     auto beginning = dis.tell();
 
@@ -76,8 +79,8 @@ void OffsetTable::parse(Buffer& dis)
         size_t length;
     };
     std::map<std::string, TableInfo> tables_pos;
-    uint32_t entire_checksum = 0;
-    uint32_t checksum_adjustment = 0;
+    uint32_t                         entire_checksum = 0;
+    uint32_t                         checksum_adjustment = 0;
     for (auto i = 0u; i < num_tables; ++i)
     {
         Tag         tag = dis.read<Tag>();
@@ -116,8 +119,11 @@ void OffsetTable::parse(Buffer& dis)
         dis.seek(orig_pos);
     }
 
-    const char* required_tables[]
-        = { "cmap", "head", "hhea", "hmtx", "maxp", "name", "OS/2", "post" };
+    const char* required_tables[] = {
+        "cmap", "head", "hhea", "hmtx",
+        "maxp", "name", "OS/2", "post", // required for sfnt
+        "CFF ", "VORG", // required for CFF outlines
+    };
 
     for (auto r : required_tables)
     {
@@ -137,34 +143,26 @@ void OffsetTable::parse(Buffer& dis)
         throw std::runtime_error("Invalid font checksum.");
     }
 
-    auto maxp = new MaxpTable();
-    dis.seek(tables_pos["maxp"].offset);
-    tables_pos.erase(tables_pos.find("maxp"));
-    maxp->parse(dis);
-    tables["maxp"] = std::unique_ptr<OTFTable>(maxp);
-
-    auto hhea = new HheaTable();
-    dis.seek(tables_pos["hhea"].offset);
-    tables_pos.erase(tables_pos.find("hhea"));
-    hhea->parse(dis);
-    tables["hhea"] = std::unique_ptr<OTFTable>(hhea);
-
-    auto hmtx = new HmtxTable(maxp->num_glyphs, hhea->num_h_metrics);
-    dis.seek(tables_pos["hmtx"].offset);
-    tables_pos.erase(tables_pos.find("hmtx"));
-    hmtx->parse(dis);
-    tables["hmtx"] = std::unique_ptr<OTFTable>(hmtx);
-
-    // Parse the remaining tables
+    // Parse the tables
     for (auto const& table : tables_pos)
     {
         std::string const& tag = table.first;
         TableInfo const&   info = table.second;
         tables[tag] = make_table(tag, dis, info.offset, info.length);
     }
+
+    // Parse remaining tables
+    dis.seek(tables_pos["hmtx"].offset);
+    tables_pos.erase(tables_pos.find("hmtx"));
+
+    auto hmtx = std::make_unique<HmtxTable>(
+        dynamic_cast<MaxpTable&>(*tables["maxp"]).num_glyphs,
+        dynamic_cast<HheaTable&>(*tables["hhea"]).num_h_metrics);
+    hmtx->parse(dis);
+    tables["hmtx"] = std::move(hmtx);
 }
 
-Buffer OffsetTable::compile() const
+Buffer Font::compile() const
 {
     Buffer buf;
 
@@ -234,10 +232,10 @@ Buffer OffsetTable::compile() const
     return buf;
 }
 
-bool OffsetTable::operator==(OTFTable const& rhs) const noexcept
+bool Font::operator==(OTFTable const& rhs) const noexcept
 {
     assert(typeid(*this) == typeid(rhs));
-    auto const& other = static_cast<OffsetTable const&>(rhs);
+    auto const& other = static_cast<Font const&>(rhs);
 
     if (tables.size() != other.tables.size())
         return false;
@@ -245,7 +243,7 @@ bool OffsetTable::operator==(OTFTable const& rhs) const noexcept
     for (auto const& table : tables)
     {
         // no table with matching tag
-        if (!other.tables.count(table.first))
+        if (other.tables.count(table.first) == 0)
             return false;
 
         auto const& t0 = *table.second;
@@ -254,5 +252,13 @@ bool OffsetTable::operator==(OTFTable const& rhs) const noexcept
             return false;
     }
     return true;
+}
+
+Glyph &Font::glyph(char32_t ch)
+{
+    auto &cmap = dynamic_cast<CmapTable&>(*tables["cmap"]);
+    auto &cff = dynamic_cast<CFFTable&>(*tables["CFF "]);
+    // TODO
+    return cff.fonts[0].glyphs[0];
 }
 }

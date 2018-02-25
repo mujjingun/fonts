@@ -3,7 +3,7 @@
 
 #include <vector>
 
-namespace fontutils
+namespace geul
 {
 
 struct Point
@@ -34,6 +34,7 @@ struct Path
 struct Glyph
 {
     std::vector<Path> paths;
+    int width;
 
     bool operator==(Glyph const& rhs) const noexcept;
 };

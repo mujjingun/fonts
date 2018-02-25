@@ -57,9 +57,11 @@ private:
 
     int find_point(int mouse_x, int mouse_y) const;
 
-    QString m_name = "";
-    Glyph *m_glyph = nullptr;
+    // Data
+    GlyphObject *m_glyph = nullptr;
     bool m_editable = false;
+
+    // Rendering stuff
     QQuickFramebufferObject *m_view = nullptr;
 
     QOpenGLVertexArrayObject m_outlineVAO{};

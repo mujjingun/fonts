@@ -1,15 +1,14 @@
 #include "maxptable.hpp"
 
-#include <typeinfo>
 #include <cassert>
+#include <typeinfo>
 
-namespace fontutils
+namespace geul
 {
 
 MaxpTable::MaxpTable()
-    : OTFTable("maxp")
-{
-}
+    : OTFTable(tag)
+{}
 
 void MaxpTable::parse(Buffer& dis)
 {

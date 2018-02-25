@@ -4,16 +4,15 @@
 #include "cmapformat14.hpp"
 #include "cmapformat4.hpp"
 
-#include <sstream>
 #include <cassert>
+#include <sstream>
 
-namespace fontutils
+namespace geul
 {
 
 CmapTable::CmapTable()
-    : OTFTable("cmap")
-{
-}
+    : OTFTable(tag)
+{}
 
 class unsupported_cmapsubtable_error : public std::runtime_error
 {
@@ -29,13 +28,19 @@ static std::unique_ptr<CmapSubtable> make_subtable(
 
     std::unique_ptr<CmapSubtable> table;
     if (format == 4)
+    {
         table = std::make_unique<CmapFormat4Subtable>(platform_id, encoding_id);
+    }
     else if (format == 12)
+    {
         table
             = std::make_unique<CmapFormat12Subtable>(platform_id, encoding_id);
+    }
     else if (format == 14)
+    {
         table
             = std::make_unique<CmapFormat14Subtable>(platform_id, encoding_id);
+    }
     else
     {
         // return to original position
@@ -72,7 +77,7 @@ void CmapTable::parse(Buffer& dis)
     {
         auto platform_id = dis.read<uint16_t>();
         auto encoding_id = dis.read<uint16_t>();
-        uint32_t off = dis.read<uint32_t>();
+        auto off = dis.read<uint32_t>();
 
         try
         {
@@ -99,9 +104,9 @@ Buffer CmapTable::compile() const
     buf.add<uint16_t>(subtables.size());
 
     // Compile subtables and store the offsets
-    Buffer subtables_buf;
+    Buffer              subtables_buf;
     std::vector<size_t> offsets;
-    size_t off = 4 + 8 * subtables.size();
+    size_t              off = 4 + 8 * subtables.size();
     for (auto const& sub : subtables)
     {
         Buffer sub_buf = sub->compile();
@@ -127,7 +132,6 @@ Buffer CmapTable::compile() const
     return buf;
 }
 
-
 bool CmapTable::operator==(OTFTable const& rhs) const noexcept
 {
     assert(typeid(*this) == typeid(rhs));
@@ -144,5 +148,4 @@ bool CmapTable::operator==(OTFTable const& rhs) const noexcept
 
     return true;
 }
-
 }

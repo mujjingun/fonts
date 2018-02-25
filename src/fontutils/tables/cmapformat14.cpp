@@ -3,14 +3,13 @@
 #include <cassert>
 #include <typeinfo>
 
-namespace fontutils
+namespace geul
 {
 
 CmapFormat14Subtable::CmapFormat14Subtable(
     uint16_t platform_id, uint16_t encoding_id)
     : CmapSubtable(platform_id, encoding_id)
-{
-}
+{}
 
 void CmapFormat14Subtable::parse(Buffer& dis)
 {
@@ -31,7 +30,7 @@ void CmapFormat14Subtable::parse(Buffer& dis)
         UVS uvs;
 
         uint32_t default_uvs_offset = dis.read<uint32_t>();
-        if (default_uvs_offset)
+        if (default_uvs_offset > 0)
         {
             auto orig_pos = dis.seek(beginning + default_uvs_offset);
             auto num_ranges = dis.read<uint32_t>();
@@ -45,7 +44,7 @@ void CmapFormat14Subtable::parse(Buffer& dis)
         }
 
         uint32_t special_uvs_offset = dis.read<uint32_t>();
-        if (special_uvs_offset)
+        if (special_uvs_offset > 0)
         {
             auto orig_pos = dis.seek(beginning + special_uvs_offset);
             auto num_uvs_mappings = dis.read<uint32_t>();
@@ -82,7 +81,7 @@ Buffer CmapFormat14Subtable::compile() const
         UVS const& uvs = selector.second;
         size_t     dflt_size = uvs.dflt.size();
         size_t     special_size = uvs.special.size();
-        if (dflt_size)
+        if (dflt_size > 0)
         {
             offset_map[selector.first].dflt = head_length + uvs_buf.size();
             uvs_buf.add<uint32_t>(dflt_size);
@@ -93,7 +92,7 @@ Buffer CmapFormat14Subtable::compile() const
             }
         }
 
-        if (special_size)
+        if (special_size > 0)
         {
             offset_map[selector.first].special = head_length + uvs_buf.size();
             uvs_buf.add<uint32_t>(special_size);
@@ -139,7 +138,7 @@ bool CmapFormat14Subtable::operator==(OTFTable const& rhs) const noexcept
 }
 
 bool CmapFormat14Subtable::DefaultUVSRange::
-operator==(DefaultUVSRange const& rhs) const noexcept
+     operator==(DefaultUVSRange const& rhs) const noexcept
 {
     return start_val == rhs.start_val && count == rhs.count;
 }

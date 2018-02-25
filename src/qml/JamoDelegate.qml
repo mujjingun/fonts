@@ -1,37 +1,82 @@
 import QtQuick 2.7
 import QtGraphicalEffects 1.0
+import QtQuick.Layouts 1.3
+import QtQuick.Controls 2.3
 import fontmaker 1.0
 
-Rectangle {
-    width: 100
-    height: 100
+ColumnLayout {
+    property FormModel formModel: model.formModel
 
-    DropShadow {
-        anchors.fill: jamo
-        horizontalOffset: 0
-        verticalOffset: 0
-        radius: 8
-        samples: 17
-        color: "#40000000"
-        source: jamo
+    ColumnLayout {
+        id: mainglyph
+        spacing: 0
+
+        Rectangle {
+            id: jamorect
+            width: 100
+            height: 100
+            color: "white"
+
+            JamoView {
+                anchors.fill: parent
+                id: jamo
+                glyph: formModel.defaultGlyph
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: {
+                    jamoedit.glyph = jamo.glyph;
+                }
+            }
+        }
+
+        Button {
+            width: parent.width
+            height: charnametext.height
+
+            Text {
+                id: charnametext
+                text: model.name
+                leftPadding: 5
+            }
+        }
+
+
+        Rectangle {
+            id: overlayrect
+            anchors.fill: parent
+            border.width: 2
+            border.color: "#BBB"
+            color: "transparent"
+        }
+
     }
 
-    JamoView {
-        id: jamo
-        anchors.fill: parent
-        name: model.name
-        glyph: model.glyph
-    }
+    ColumnLayout {
+        id: forms
+        spacing: 2
 
-    Text {
-        text: name
-    }
+        Repeater {
+            id: treeview
 
-    MouseArea {
-        anchors.fill: parent
-        onClicked: {
-            jamoedit.name = jamo.name;
-            jamoedit.glyph = jamo.glyph;
+            model: formModel
+
+            delegate: ColumnLayout {
+
+                JamoView {
+                    width: 100
+                    height: 100
+                    glyph: model.glyph
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        //jamoedit.glyph = jamo.glyph;
+                    }
+                }
+            }
         }
     }
 }

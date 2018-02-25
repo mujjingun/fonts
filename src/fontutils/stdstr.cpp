@@ -1,7 +1,8 @@
 #include "stdstr.hpp"
 
-namespace fontutils
+namespace geul
 {
+// clang-format off
 std::array<char const*, 391> standard_strings = {
 /*   0 */ ".notdef",
 /*   1 */ "space",
@@ -395,4 +396,5 @@ std::array<char const*, 391> standard_strings = {
 /* 389 */ "Roman",
 /* 390 */ "Semibold",
 };
+// clang-format on
 }

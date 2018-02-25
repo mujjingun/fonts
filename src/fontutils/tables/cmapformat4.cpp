@@ -7,14 +7,13 @@
 #include <unordered_map>
 #include <vector>
 
-namespace fontutils
+namespace geul
 {
 
 CmapFormat4Subtable::CmapFormat4Subtable(
     uint16_t platform_id, uint16_t encoding_id)
     : CmapSubtable(platform_id, encoding_id)
-{
-}
+{}
 
 void CmapFormat4Subtable::parse(Buffer& dis)
 {

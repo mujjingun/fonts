@@ -1,15 +1,14 @@
 #include "posttable.hpp"
 
-#include <typeinfo>
 #include <cassert>
+#include <typeinfo>
 
-namespace fontutils
+namespace geul
 {
 
 PostTable::PostTable()
-    : OTFTable("post")
-{
-}
+    : OTFTable(tag)
+{}
 
 void PostTable::parse(Buffer& dis)
 {

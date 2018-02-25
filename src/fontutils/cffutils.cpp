@@ -3,7 +3,7 @@
 #include <iomanip>
 #include <sstream>
 
-namespace fontutils
+namespace geul
 {
 
 IndexView parse_index(Buffer& dis)
@@ -33,8 +33,7 @@ IndexIterator::IndexIterator(
     , count(count)
     , offset_start(offset_start)
     , dis(&dis)
-{
-}
+{}
 
 IndexIterator& IndexIterator::operator++()
 {
@@ -55,7 +54,7 @@ IndexIterator::OffsetData IndexIterator::operator*() const
         throw std::runtime_error("attempt to dereference an end iterator");
 
     size_t cur = offset_start + off_size * (index - count - 1) + 1;
-    auto orig_pos = dis->seek(cur);
+    auto   orig_pos = dis->seek(cur);
 
     auto offset = dis->read_nbytes(off_size);
     auto length = dis->read_nbytes(off_size) - offset;
@@ -178,9 +177,9 @@ CFFToken next_token(Buffer& dis)
     // floating point
     else if (b0 == 30)
     {
-        int byte = 0, t;
+        int         byte = 0, t;
         std::string num;
-        bool read_next = true;
+        bool        read_next = true;
         do
         {
             if (read_next)
@@ -295,7 +294,7 @@ void write_token(Buffer& buf, CFFToken token)
         oss << std::scientific << token.to_double();
         std::string num = oss.str();
 
-        int byte = 0;
+        int  byte = 0;
         bool new_byte = true;
         for (auto it = num.begin(); it != num.end(); ++it)
         {

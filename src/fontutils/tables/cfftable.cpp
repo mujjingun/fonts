@@ -10,13 +10,12 @@
 #include "../csparser.hpp"
 #include "../stdstr.hpp"
 
-namespace fontutils
+namespace geul
 {
 
 CFFTable::CFFTable()
-    : OTFTable("CFF ")
-{
-}
+    : OTFTable(tag)
+{}
 
 void CFFTable::parse(Buffer& dis)
 {
@@ -83,7 +82,7 @@ void CFFTable::parse(Buffer& dis)
         int fdselect_offset = -1;
 
         std::vector<CFFToken> operands;
-        int                   is_first_op = true;
+        bool                  is_first_op = true;
         while (dis.tell() < dict.offset + dict.length)
         {
             auto token = next_token(dis);
@@ -653,10 +652,13 @@ void CFFTable::parse(Buffer& dis)
         for (auto item : index)
         {
             dis.seek(item.offset);
+            int fd_idx = font.fd_select[item.index];
             font.glyphs[item.index] = parse_charstring(
                 dis.read_string(item.length),
                 gsubrs,
-                lsubrs[i][font.fd_select[item.index]]);
+                lsubrs[i][fd_idx],
+                font.fd_array[fd_idx].default_width_x,
+                font.fd_array[fd_idx].nominal_width_x);
         }
     }
 }
@@ -692,7 +694,7 @@ Buffer CFFTable::compile() const
         sid_map[standard_strings[i]] = i;
 
     size_t sid_idx = standard_strings.size();
-    auto get_sid = [&](std::string const& str) -> int {
+    auto   get_sid = [&](std::string const& str) -> int {
         auto it = sid_map.find(str);
         if (it != sid_map.end())
             return it->second;

@@ -7,7 +7,7 @@
 #include <string>
 #include <unordered_map>
 
-namespace fontutils
+namespace geul
 {
 
 enum class Fixed : uint32_t
@@ -21,17 +21,17 @@ template <typename T> inline T to_machine_endian(char const*)
     static_assert((T{}, 0), "Cannot convert type to machine endian");
 }
 
-template <> char to_machine_endian(char const* buf);
-template <> uint8_t to_machine_endian(char const* buf);
-template <> int8_t to_machine_endian(char const* buf);
+template <> char     to_machine_endian(char const* buf);
+template <> uint8_t  to_machine_endian(char const* buf);
+template <> int8_t   to_machine_endian(char const* buf);
 template <> uint16_t to_machine_endian(char const* buf);
-template <> int16_t to_machine_endian(char const* buf);
+template <> int16_t  to_machine_endian(char const* buf);
 template <> uint32_t to_machine_endian(char const* buf);
-template <> int32_t to_machine_endian(char const* buf);
+template <> int32_t  to_machine_endian(char const* buf);
 template <> uint64_t to_machine_endian(char const* buf);
-template <> int64_t to_machine_endian(char const* buf);
-template <> Tag to_machine_endian(char const* buf);
-template <> Fixed to_machine_endian(char const* buf);
+template <> int64_t  to_machine_endian(char const* buf);
+template <> Tag      to_machine_endian(char const* buf);
+template <> Fixed    to_machine_endian(char const* buf);
 
 template <typename T> void to_big_endian(char*, T)
 {
@@ -53,7 +53,7 @@ template <> void to_big_endian(char* buf, Fixed t);
 class Buffer
 {
     std::string arr = "";
-    size_t pos = 0;
+    size_t      pos = 0;
 
     std::unordered_map<std::string, size_t> markers = {};
 

@@ -1,13 +1,13 @@
 #ifndef TABLES_CMAP_TABLE_HPP
 #define TABLES_CMAP_TABLE_HPP
 
-#include "otftable.hpp"
 #include "cmapsubtable.hpp"
+#include "otftable.hpp"
 
-#include <vector>
 #include <memory>
+#include <vector>
 
-namespace fontutils
+namespace geul
 {
 
 class CmapTable : public OTFTable
@@ -17,11 +17,12 @@ public:
 
 public:
     CmapTable();
-    virtual void parse (Buffer &dis) override;
+    virtual void   parse(Buffer& dis) override;
     virtual Buffer compile() const override;
-    virtual bool operator==(OTFTable const& rhs) const noexcept override;
-};
+    virtual bool   operator==(OTFTable const& rhs) const noexcept override;
 
+    static constexpr char const* tag = "cmap";
+};
 }
 
 #endif

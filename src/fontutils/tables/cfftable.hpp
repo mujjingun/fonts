@@ -8,11 +8,12 @@
 #include <iterator>
 #include <vector>
 
-namespace fontutils
+namespace geul
 {
 
 class CFFTable : public OTFTable
 {
+public:
     struct Font
     {
         std::string name;
@@ -30,20 +31,20 @@ class CFFTable : public OTFTable
             std::string familyname;
             std::string weight;
 
-            bool is_fixed_pitch = false;
-            int  italic_angle = 0;
-            int  underline_position = -100;
-            int  underline_thickness = 50;
-            int  paint_type = 0;
-            int  charstring_type = 2;
+            bool                  is_fixed_pitch = false;
+            int                   italic_angle = 0;
+            int                   underline_position = -100;
+            int                   underline_thickness = 50;
+            int                   paint_type = 0;
+            int                   charstring_type = 2;
             std::array<double, 6> font_matrix = { 0.001, 0, 0, 0.001, 0, 0 };
-            int unique_id = 0;
-            std::array<int, 4> font_bbox = { 0, 0, 0, 0 };
-            int              stroke_width = 0;
-            std::vector<int> xuid;
-            std::string      postscript;
-            std::string      basefont_name;
-            int              basefont_blend;
+            int                   unique_id = 0;
+            std::array<int, 4>    font_bbox = { 0, 0, 0, 0 };
+            int                   stroke_width = 0;
+            std::vector<int>      xuid;
+            std::string           postscript;
+            std::string           basefont_name;
+            int                   basefont_blend;
 
             // CID font info
             std::string registry;
@@ -98,9 +99,11 @@ class CFFTable : public OTFTable
 
 public:
     CFFTable();
-    virtual void parse(Buffer& dis) override;
+    virtual void   parse(Buffer& dis) override;
     virtual Buffer compile() const override;
-    virtual bool operator==(OTFTable const& rhs) const noexcept override;
+    virtual bool   operator==(OTFTable const& rhs) const noexcept override;
+
+    static constexpr char const* tag = "CFF ";
 };
 }
 

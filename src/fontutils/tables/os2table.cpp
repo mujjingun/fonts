@@ -1,15 +1,14 @@
 #include "os2table.hpp"
 
-#include <typeinfo>
 #include <cassert>
+#include <typeinfo>
 
-namespace fontutils
+namespace geul
 {
 
 OS2Table::OS2Table()
-    : OTFTable("OS/2")
-{
-}
+    : OTFTable(tag)
+{}
 
 void OS2Table::parse(Buffer& dis)
 {
@@ -73,7 +72,9 @@ void OS2Table::parse(Buffer& dis)
         us_max_context = dis.read<uint16_t>();
     }
     else
+    {
         throw std::runtime_error("Unsupported version of the OS/2 table.");
+    }
 }
 
 Buffer OS2Table::compile() const

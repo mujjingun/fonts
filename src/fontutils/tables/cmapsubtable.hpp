@@ -3,7 +3,7 @@
 
 #include "otftable.hpp"
 
-namespace fontutils
+namespace geul
 {
 
 class CmapSubtable : public OTFTable
@@ -13,7 +13,6 @@ public:
     uint16_t encoding_id;
     CmapSubtable(uint16_t platform_id, uint16_t encoding_id);
 };
-
 }
 
 #endif

@@ -6,7 +6,7 @@
 #include <sstream>
 #include <vector>
 
-namespace fontutils
+namespace geul
 {
 
 enum class Op
@@ -96,19 +96,19 @@ static int get_subr_bias(int subr_count)
 struct ParseState
 {
     std::deque<int> stack = {};
-    Point pos = { 0, 0 };
-    int op_index = 0;
-    Glyph glyph = {};
-    int width = -1; // FIXME
-    int n_hints = 0;
-    bool finished = false;
+    Point           pos = { 0, 0 };
+    int             op_index = 0;
+    Glyph           glyph = {};
+    int             n_hints = 0;
+    bool            finished = false;
 };
 
 static void call_subroutine(
-    std::string cs,
+    std::string                     cs,
     std::vector<std::string> const& gsubrs,
     std::vector<std::string> const& lsubrs,
-    ParseState& state)
+    int                             nominal_width,
+    ParseState&                     state)
 {
     Buffer buf(std::move(cs));
 
@@ -144,7 +144,7 @@ static void call_subroutine(
             if ((stack.size() % 2 == 1 && is_even_op)
                 || (stack.size() == 2 && one_arg_op))
             {
-                state.width = stack[0];
+                glyph.width = nominal_width + stack[0];
                 stack.pop_front();
             }
         }
@@ -303,9 +303,9 @@ static void call_subroutine(
             if (glyph.paths.empty())
                 glyph.paths.push_back(Path(pos));
 
-            if (stack.empty() || (stack.size() % 8 != 0 && stack.size() % 8 != 1
-                                  && stack.size() % 8 != 4
-                                  && stack.size() % 8 != 5))
+            if (stack.empty()
+                || (stack.size() % 8 != 0 && stack.size() % 8 != 1
+                    && stack.size() % 8 != 4 && stack.size() % 8 != 5))
                 throw std::invalid_argument(
                     "invalid number of arguments for hvcurveto");
 
@@ -398,9 +398,9 @@ static void call_subroutine(
             if (glyph.paths.empty())
                 glyph.paths.push_back(Path(pos));
 
-            if (stack.empty() || (stack.size() % 8 != 0 && stack.size() % 8 != 1
-                                  && stack.size() % 8 != 4
-                                  && stack.size() % 8 != 5))
+            if (stack.empty()
+                || (stack.size() % 8 != 0 && stack.size() % 8 != 1
+                    && stack.size() % 8 != 4 && stack.size() % 8 != 5))
                 throw std::invalid_argument(
                     "invalid number of arguments for vhcurveto");
 
@@ -648,7 +648,7 @@ static void call_subroutine(
             stack.pop_back();
             if (idx >= gsubrs.size())
                 throw std::invalid_argument("gsubr index out of bounds");
-            call_subroutine(gsubrs[idx], gsubrs, lsubrs, state);
+            call_subroutine(gsubrs[idx], gsubrs, lsubrs, nominal_width, state);
             continue;
         }
         else if (op == Op::callsubr)
@@ -657,7 +657,7 @@ static void call_subroutine(
             stack.pop_back();
             if (idx >= lsubrs.size())
                 throw std::invalid_argument("lsubr index out of bounds");
-            call_subroutine(lsubrs[idx], gsubrs, lsubrs, state);
+            call_subroutine(lsubrs[idx], gsubrs, lsubrs, nominal_width, state);
             continue;
         }
         else if (op == Op::return_)
@@ -675,18 +675,21 @@ static void call_subroutine(
 }
 
 Glyph parse_charstring(
-    std::string const& cs,
+    std::string const&              cs,
     std::vector<std::string> const& gsubrs,
-    std::vector<std::string> const& lsubrs)
+    std::vector<std::string> const& lsubrs,
+    int                             default_width,
+    int                             nominal_width)
 {
     ParseState state;
-    call_subroutine(cs, gsubrs, lsubrs, state);
+    state.glyph.width = default_width;
+    call_subroutine(cs, gsubrs, lsubrs, nominal_width, state);
     if (!state.finished)
         throw std::runtime_error("premature end of charstring parsing");
     return state.glyph;
 }
 
-static void write_number(Buffer &buf, int val)
+static void write_number(Buffer& buf, int val)
 {
     if (-107 <= val && val <= 107)
     {
@@ -714,7 +717,7 @@ static void write_number(Buffer &buf, int val)
     }
 }
 
-static void write_op(Buffer &buf, Op op)
+static void write_op(Buffer& buf, Op op)
 {
     int int_op = int(op);
     if (int_op & 0xff00)
@@ -726,7 +729,7 @@ static void write_op(Buffer &buf, Op op)
 Buffer write_charstring(Glyph const& glyph)
 {
     Buffer buf;
-    Point pos = {0, 0};
+    Point  pos = { 0, 0 };
     for (auto const& path : glyph.paths)
     {
         write_number(buf, path.start.x - pos.x);

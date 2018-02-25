@@ -8,7 +8,7 @@
 
 #include "buffer.hpp"
 
-namespace fontutils
+namespace geul
 {
 
 class IndexIterator
@@ -33,7 +33,7 @@ public:
     OffsetData operator*() const;
 
 private:
-    size_t index = 0;
+    size_t       index = 0;
     const size_t off_size = 0, count = 0;
     const size_t offset_start = 0;
 
@@ -42,9 +42,9 @@ private:
 
 struct IndexView
 {
-    int count = 0;
-    int off_size;
-    size_t offset_start;
+    int     count = 0;
+    int     off_size;
+    size_t  offset_start;
     Buffer* dis = nullptr;
 
     IndexIterator begin() const;
@@ -108,9 +108,10 @@ public:
 private:
     Type type;
 
-    union {
-        Op op;
-        int integer;
+    union
+    {
+        Op     op;
+        int    integer;
         double floating;
     } value;
 };
@@ -120,6 +121,6 @@ CFFToken next_token(Buffer& dis);
 Buffer write_index(std::vector<Buffer>&& data);
 
 void write_token(Buffer& buf, CFFToken token);
-}
+} // namespace fontutils
 
 #endif
