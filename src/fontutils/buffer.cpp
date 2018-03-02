@@ -1,191 +1,43 @@
 #include "buffer.hpp"
 
+#include <fstream>
+#include <sstream>
+
 namespace geul
 {
 
-template <> char to_machine_endian(char const* buf)
+// InputBuffer
+
+InputBuffer InputBuffer::open(std::string filename)
 {
-    return *buf;
+    InputBuffer input_buf;
+    input_buf.mode = std::ios::in;
+
+    auto buf = std::make_unique<std::filebuf>();
+    if (!buf->open(filename, input_buf.mode | std::ios::binary))
+        throw std::runtime_error("Cannot open file");
+    input_buf.buf = std::move(buf);
+
+    return input_buf;
 }
 
-template <> uint8_t to_machine_endian(char const* buf)
+InputBuffer::InputBuffer(std::string&& data)
+    : mode(std::ios::in)
+    , buf(std::make_unique<std::stringbuf>(data, mode | std::ios::binary))
 {
-    return static_cast<uint8_t>(*buf & 0xff);
+    data = std::string();
 }
 
-template <> int8_t to_machine_endian(char const* buf)
+std::string InputBuffer::read_string(std::streamsize length)
 {
-    return static_cast<int8_t>(*buf & 0xff);
+    std::string str(length, 0);
+    auto        n = buf->sgetn(&str[0], length);
+    if (n < length)
+        throw std::runtime_error("cannot read string");
+    return str;
 }
 
-template <> uint16_t to_machine_endian(char const* buf)
-{
-    return (uint16_t(buf[1] & 0xff) << 0) | (uint16_t(buf[0] & 0xff) << 8);
-}
-
-template <> int16_t to_machine_endian(char const* buf)
-{
-    return to_machine_endian<uint16_t>(buf);
-}
-
-template <> uint32_t to_machine_endian(char const* buf)
-{
-    return (uint32_t(buf[3] & 0xff) << 0) | (uint32_t(buf[2] & 0xff) << 8)
-           | (uint32_t(buf[1] & 0xff) << 16) | (uint32_t(buf[0] & 0xff) << 24);
-}
-
-template <> int32_t to_machine_endian(char const* buf)
-{
-    return to_machine_endian<uint32_t>(buf);
-}
-
-template <> uint64_t to_machine_endian(char const* buf)
-{
-    return (uint64_t(buf[7] & 0xff) << 0) | (uint64_t(buf[6] & 0xff) << 8)
-           | (uint64_t(buf[5] & 0xff) << 16) | (uint64_t(buf[4] & 0xff) << 24)
-           | (uint64_t(buf[3] & 0xff) << 32) | (uint64_t(buf[2] & 0xff) << 40)
-           | (uint64_t(buf[1] & 0xff) << 48) | (uint64_t(buf[0] & 0xff) << 56);
-}
-
-template <> int64_t to_machine_endian(char const* buf)
-{
-    return to_machine_endian<uint64_t>(buf);
-}
-
-template <> Tag to_machine_endian(char const* buf)
-{
-    return {
-        uint8_t(buf[0]), uint8_t(buf[1]), uint8_t(buf[2]), uint8_t(buf[3])
-    };
-}
-
-template <> Fixed to_machine_endian(char const* buf)
-{
-    return Fixed(to_machine_endian<uint32_t>(buf));
-}
-
-template <> void to_big_endian(char* buf, char t)
-{
-    *buf = t;
-}
-
-template <> void to_big_endian(char* buf, int8_t t)
-{
-    *buf = t;
-}
-
-template <> void to_big_endian(char* buf, uint8_t t)
-{
-    *buf = t;
-}
-
-template <> void to_big_endian(char* buf, uint16_t t)
-{
-    buf[0] = (t & 0xff00) >> 8;
-    buf[1] = (t & 0x00ff);
-}
-
-template <> void to_big_endian(char* buf, int16_t t)
-{
-    buf[0] = (t & 0xff00) >> 8;
-    buf[1] = (t & 0x00ff);
-}
-
-template <> void to_big_endian(char* buf, uint32_t t)
-{
-    buf[0] = (t & 0xff000000) >> 24;
-    buf[1] = (t & 0x00ff0000) >> 16;
-    buf[2] = (t & 0x0000ff00) >> 8;
-    buf[3] = (t & 0x000000ff);
-}
-
-template <> void to_big_endian(char* buf, int32_t t)
-{
-    buf[0] = (t & 0xff000000) >> 24;
-    buf[1] = (t & 0x00ff0000) >> 16;
-    buf[2] = (t & 0x0000ff00) >> 8;
-    buf[3] = (t & 0x000000ff);
-}
-
-template <> void to_big_endian(char* buf, uint64_t t)
-{
-    buf[0] = (t & 0xff00000000000000) >> 56;
-    buf[1] = (t & 0x00ff000000000000) >> 48;
-    buf[2] = (t & 0x0000ff0000000000) >> 40;
-    buf[3] = (t & 0x000000ff00000000) >> 32;
-    buf[4] = (t & 0x00000000ff000000) >> 24;
-    buf[5] = (t & 0x0000000000ff0000) >> 16;
-    buf[6] = (t & 0x000000000000ff00) >> 8;
-    buf[7] = (t & 0x00000000000000ff);
-}
-
-template <> void to_big_endian(char* buf, int64_t t)
-{
-    buf[0] = (t & 0xff00000000000000) >> 56;
-    buf[1] = (t & 0x00ff000000000000) >> 48;
-    buf[2] = (t & 0x0000ff0000000000) >> 40;
-    buf[3] = (t & 0x000000ff00000000) >> 32;
-    buf[4] = (t & 0x00000000ff000000) >> 24;
-    buf[5] = (t & 0x0000000000ff0000) >> 16;
-    buf[6] = (t & 0x000000000000ff00) >> 8;
-    buf[7] = (t & 0x00000000000000ff);
-}
-
-template <> void to_big_endian(char* buf, Fixed t)
-{
-    to_big_endian<uint32_t>(buf, uint32_t(t));
-}
-
-template <> void to_big_endian(char* buf, Tag t)
-{
-    buf[0] = t[0];
-    buf[1] = t[1];
-    buf[2] = t[2];
-    buf[3] = t[3];
-}
-
-Buffer::Buffer(std::string&& data)
-    : arr(std::move(data))
-{}
-
-Buffer::Buffer(std::string const& data)
-    : arr(data)
-{}
-
-void Buffer::add_nbytes(int n, uint32_t t)
-{
-    if (n <= 0 || n > 4)
-        throw std::runtime_error("cannot read n-byte integer");
-
-    int      shift = (n - 1) * 8;
-    uint32_t mask = 0xff << shift;
-    for (int i = 0; i < n; ++i)
-    {
-        add<uint8_t>((t & mask) >> shift);
-        shift -= 8;
-        mask >>= 8;
-    }
-}
-
-void Buffer::append(Buffer&& buf)
-{
-    for (auto const& item : buf.markers)
-        markers.insert({ item.first, arr.size() + item.second });
-    arr.append(buf.arr);
-    buf.arr.clear();
-    buf.markers.clear();
-}
-
-void Buffer::pad()
-{
-    size_t n = arr.size() % 4;
-    if (n > 0)
-    {
-        arr.resize(arr.size() + (4 - n));
-    }
-}
-
-uint32_t Buffer::read_nbytes(int n)
+uint32_t InputBuffer::read_nint(int n)
 {
     if (n <= 0 || n > 4)
         throw std::runtime_error("cannot read n-byte integer");
@@ -199,51 +51,111 @@ uint32_t Buffer::read_nbytes(int n)
     return ret;
 }
 
-std::string Buffer::read_string(size_t length)
+std::streampos InputBuffer::seek(std::streampos pos)
 {
-    std::string str(length, 0);
-    read(&str[0], length);
-    return str;
-}
-
-size_t Buffer::seek(size_t off)
-{
-    if (off > size())
-        throw std::range_error("Invalid seek position.");
-    size_t orig_pos = pos;
-    pos = off;
+    auto orig_pos = tell();
+    if (buf->pubseekpos(pos, mode) == std::streamoff(-1))
+        throw std::runtime_error("Cannot seek to pos");
     return orig_pos;
 }
 
-size_t Buffer::tell() const
+std::streampos InputBuffer::seek_begin()
 {
+    auto orig_pos = tell();
+    if (buf->pubseekoff(0, std::ios::beg, mode) == std::streamoff(-1))
+        throw std::runtime_error("Cannot seek to the beginning of buffer.");
+    return orig_pos;
+}
+
+std::streampos InputBuffer::seek_end()
+{
+    auto orig_pos = tell();
+    if (buf->pubseekoff(0, std::ios::end, mode) == std::streamoff(-1))
+        throw std::runtime_error("Cannot seek to the end of buffer.");
+    return orig_pos;
+}
+
+std::streampos InputBuffer::tell() const
+{
+    auto pos = buf->pubseekoff(0, std::ios::cur, mode);
+    if (pos == std::streamoff(-1))
+        throw std::runtime_error("Cannot tell current position.");
     return pos;
 }
 
-size_t Buffer::size() const
+size_t InputBuffer::size() const
 {
-    return arr.size();
+    auto orig_pos = tell();
+    auto begin = buf->pubseekoff(0, std::ios::beg, mode);
+    auto end = buf->pubseekoff(0, std::ios::end, mode);
+    buf->pubseekpos(orig_pos, mode);
+    return end - begin;
 }
 
-size_t Buffer::marker(std::string const& name) const
+// OutputBuffer
+
+OutputBuffer OutputBuffer::open(std::string filename)
 {
-    return markers.at(name);
+    OutputBuffer output_buf;
+    output_buf.mode = std::ios::in | std::ios::out;
+
+    auto buf = std::make_unique<std::filebuf>();
+    if (!buf->open(filename, output_buf.mode | std::ios::binary | std::ios::trunc))
+        throw std::runtime_error("Cannot open file");
+    output_buf.buf = std::move(buf);
+
+    return output_buf;
 }
 
-void Buffer::add_marker(size_t pos, std::string const& name)
+OutputBuffer::OutputBuffer(std::string&& data)
 {
-    if (markers.find(name) != markers.end())
-        throw std::runtime_error("marker with the same name already exists.");
-    markers[name] = pos;
+    mode = std::ios::in | std::ios::out;
+    buf = std::make_unique<std::stringbuf>(data, mode | std::ios::binary);
 }
 
-void Buffer::clear_markers()
+void OutputBuffer::write_string(const std::string &str)
 {
-    markers.clear();
+    write<char>(str.data(), str.size());
 }
 
-char* Buffer::data()
+void OutputBuffer::write_nint(int n, uint32_t t)
 {
-    return &arr[0];
+    if (n <= 0 || n > 4)
+        throw std::runtime_error("cannot read n-byte integer");
+
+    int      shift = (n - 1) * 8;
+    uint32_t mask = 0xff << shift;
+    for (int i = 0; i < n; ++i)
+    {
+        write<uint8_t>((t & mask) >> shift);
+        shift -= 8;
+        mask >>= 8;
+    }
 }
+
+void OutputBuffer::write_buf(InputBuffer&& other)
+{
+    constexpr auto  SIZE = 4096;
+    char            arr[SIZE];
+    std::streamsize n;
+    do
+    {
+        n = other.buf->sgetn(arr, SIZE);
+        auto written = buf->sputn(arr, n);
+        if (written < n)
+            throw std::runtime_error("Cannot write to buffer");
+    } while (n == SIZE);
+}
+
+void OutputBuffer::pad()
+{
+    auto orig_pos = seek_begin();
+    auto begin = seek_end();
+    auto end = tell();
+    auto remainder = (end - begin) % 4;
+    if (remainder > 0)
+        write_nint(4 - remainder, 0);
+    seek(orig_pos);
+}
+
 }

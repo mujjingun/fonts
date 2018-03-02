@@ -8,14 +8,9 @@ namespace geul
 // parse file into Font
 Font parse_otf(const std::string& filename)
 {
-    std::ifstream file(filename);
-    if (file.fail())
-        throw std::runtime_error("Cannot open file for reading.");
-
-    Font   font;
-    Buffer buf(std::string{ std::istreambuf_iterator<char>(file),
-                            std::istreambuf_iterator<char>() });
-    font.parse(buf);
+    Font font;
+    auto input_buf = InputBuffer::open(filename);
+    font.parse(input_buf);
 
     return font;
 }
@@ -23,12 +18,7 @@ Font parse_otf(const std::string& filename)
 // write Font to file
 void write_otf(const Font& font, const std::string& filename)
 {
-    std::ofstream file(filename);
-    if (file.fail())
-        throw std::runtime_error("Cannot open file for writing.");
-
-    Buffer buf = font.compile();
-
-    file.write(buf.data(), buf.size());
+    auto buf = OutputBuffer::open(filename);
+    font.compile(buf);
 }
 }

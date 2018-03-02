@@ -15,7 +15,7 @@ CmapFormat4Subtable::CmapFormat4Subtable(
     : CmapSubtable(platform_id, encoding_id)
 {}
 
-void CmapFormat4Subtable::parse(Buffer& dis)
+void CmapFormat4Subtable::parse(InputBuffer& dis)
 {
     auto format = dis.read<uint16_t>();
     if (format != 4)
@@ -105,12 +105,10 @@ void CmapFormat4Subtable::parse(Buffer& dis)
     }
 }
 
-Buffer CmapFormat4Subtable::compile() const
+void CmapFormat4Subtable::compile(OutputBuffer& out) const
 {
-    Buffer buf;
-
     // Format 4
-    buf.add<uint16_t>(4);
+    out.write<uint16_t>(4);
 
     struct Segment
     {
@@ -189,36 +187,34 @@ Buffer CmapFormat4Subtable::compile() const
     if (length >= 65535)
         throw std::runtime_error("subtable too long");
 
-    buf.add<uint16_t>(length);
-    buf.add<uint16_t>(language);
-    buf.add<uint16_t>(seg_list.size() * 2);
+    out.write<uint16_t>(length);
+    out.write<uint16_t>(language);
+    out.write<uint16_t>(seg_list.size() * 2);
 
     // searchRange
     auto search_range = 2 * le_pow2(seg_list.size());
-    buf.add<uint16_t>(search_range);
+    out.write<uint16_t>(search_range);
     // entrySelector
-    buf.add<uint16_t>(std::ilogb(seg_list.size()));
+    out.write<uint16_t>(std::ilogb(seg_list.size()));
     // rangeShift
-    buf.add<uint16_t>(2 * seg_list.size() - search_range);
+    out.write<uint16_t>(2 * seg_list.size() - search_range);
 
     for (auto const& seg : seg_list)
-        buf.add<uint16_t>(seg.end_code);
+        out.write<uint16_t>(seg.end_code);
 
     // reservedPad
-    buf.add<uint16_t>(0);
+    out.write<uint16_t>(0);
 
     for (auto const& seg : seg_list)
-        buf.add<uint16_t>(seg.start_code);
+        out.write<uint16_t>(seg.start_code);
 
     for (auto const& seg : seg_list)
-        buf.add<uint16_t>(seg.id_delta);
+        out.write<uint16_t>(seg.id_delta);
 
     for (auto const& seg : seg_list)
-        buf.add<uint16_t>(seg.id_range_offset);
+        out.write<uint16_t>(seg.id_range_offset);
 
-    buf.add<uint16_t>(gid_array.data(), gid_array.size());
-
-    return buf;
+    out.write<uint16_t>(gid_array.data(), gid_array.size());
 }
 
 bool CmapFormat4Subtable::operator==(OTFTable const& rhs) const noexcept

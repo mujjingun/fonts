@@ -23,10 +23,10 @@ public:
 
     /// Compile the table into a Buffer.
     /// DOES NOT pad the end of the buffer.
-    virtual Buffer compile() const = 0;
+    virtual void compile(OutputBuffer& out) const = 0;
 
     /// Parse the buffer starting from the current position.
-    virtual void parse(Buffer& dis) = 0;
+    virtual void parse(InputBuffer& dis) = 0;
 
     /// Compare equality
     virtual bool operator==(OTFTable const& rhs) const noexcept = 0;
@@ -37,7 +37,7 @@ private:
     std::string id_;
 };
 
-uint32_t calculate_checksum(Buffer& dis, size_t length);
+uint32_t calculate_checksum(InputBuffer& dis, size_t length);
 
 /// Biggest power-of-2 less than or equal to num
 int le_pow2(int num);

@@ -10,7 +10,7 @@ MaxpTable::MaxpTable()
     : OTFTable(tag)
 {}
 
-void MaxpTable::parse(Buffer& dis)
+void MaxpTable::parse(InputBuffer& dis)
 {
     std::cout << "Parsing 'maxp'... " << std::endl;
 
@@ -25,21 +25,17 @@ void MaxpTable::parse(Buffer& dis)
     }
 }
 
-Buffer MaxpTable::compile() const
+void MaxpTable::compile(OutputBuffer& out) const
 {
-    Buffer buf;
-
     if (version == Fixed(0x00005000))
     {
-        buf.add<Fixed>(version);
-        buf.add<uint16_t>(num_glyphs);
+        out.write<Fixed>(version);
+        out.write<uint16_t>(num_glyphs);
     }
     else
     {
         throw std::runtime_error("CFF fonts must have version 0.5 maxp table");
     }
-
-    return buf;
 }
 
 bool MaxpTable::operator==(OTFTable const& rhs) const noexcept

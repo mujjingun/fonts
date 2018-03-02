@@ -10,7 +10,7 @@ NameTable::NameTable()
     : OTFTable(tag)
 {}
 
-void NameTable::parse(Buffer& dis)
+void NameTable::parse(InputBuffer& dis)
 {
     std::cout << "Parsing 'name'... " << std::endl;
 
@@ -47,42 +47,39 @@ void NameTable::parse(Buffer& dis)
     }
 }
 
-Buffer NameTable::compile() const
+void NameTable::compile(OutputBuffer& out) const
 {
-    Buffer buf;
-
     if (format == 0)
     {
-        buf.add<uint16_t>(format);
-        buf.add<uint16_t>(records.size());
+        out.write<uint16_t>(format);
+        out.write<uint16_t>(records.size());
 
         size_t offset = 6 + 12 * records.size();
-        buf.add<uint16_t>(offset);
+        out.write<uint16_t>(offset);
 
-        Buffer strings;
         size_t off = 0;
         for (auto const& record : records)
         {
-            buf.add<uint16_t>(record.platform_id);
-            buf.add<uint16_t>(record.encoding_id);
-            buf.add<uint16_t>(record.language_id);
-            buf.add<uint16_t>(record.name_id);
+            out.write<uint16_t>(record.platform_id);
+            out.write<uint16_t>(record.encoding_id);
+            out.write<uint16_t>(record.language_id);
+            out.write<uint16_t>(record.name_id);
 
-            buf.add<uint16_t>(record.str.size());
-            buf.add<uint16_t>(off);
+            out.write<uint16_t>(record.str.size());
+            out.write<uint16_t>(off);
 
             off += record.str.size();
-            strings.append(Buffer(record.str));
         }
 
-        buf.append(std::move(strings));
+        for (auto const& record : records)
+        {
+            out.write_string(record.str);
+        }
     }
     else
     {
         throw std::runtime_error("Unrecognized name table format");
     }
-
-    return buf;
 }
 
 bool NameTable::operator==(OTFTable const& rhs) const noexcept

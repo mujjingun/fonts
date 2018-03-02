@@ -2,9 +2,8 @@
 #define FONTUTILS_CFF_UTILS_HPP
 
 #include <cstddef>
-#include <iostream>
-#include <stdexcept>
 #include <vector>
+#include <functional>
 
 #include "buffer.hpp"
 
@@ -19,7 +18,8 @@ public:
 
     IndexIterator(IndexIterator const& it) = default;
 
-    IndexIterator(size_t count, int off_size, size_t offset_start, Buffer& dis);
+    IndexIterator(
+        size_t count, int off_size, size_t offset_start, InputBuffer& dis);
 
     IndexIterator& operator++();
 
@@ -27,7 +27,8 @@ public:
 
     struct OffsetData
     {
-        size_t offset, length, index;
+        std::streampos pos;
+        size_t length, index;
     };
 
     OffsetData operator*() const;
@@ -37,22 +38,22 @@ private:
     const size_t off_size = 0, count = 0;
     const size_t offset_start = 0;
 
-    Buffer* dis = nullptr;
+    InputBuffer* dis = nullptr;
 };
 
 struct IndexView
 {
-    int     count = 0;
-    int     off_size;
-    size_t  offset_start;
-    Buffer* dis = nullptr;
+    int            count = 0;
+    int            off_size;
+    std::streampos offset_start;
+    InputBuffer*   dis = nullptr;
 
     IndexIterator begin() const;
 
     IndexIterator end() const;
 };
 
-IndexView parse_index(Buffer& dis);
+IndexView parse_index(InputBuffer& dis);
 
 class CFFToken
 {
@@ -116,11 +117,14 @@ private:
     } value;
 };
 
-CFFToken next_token(Buffer& dis);
+CFFToken next_token(InputBuffer& dis);
 
-Buffer write_index(std::vector<Buffer>&& data);
+void write_index(
+    OutputBuffer& out, int size, std::function<void(int)> cb);
 
-void write_token(Buffer& buf, CFFToken token);
+void write_token(OutputBuffer& out, CFFToken token);
+
+void write_token_at(OutputBuffer& out, std::streampos pos, CFFToken token);
 } // namespace fontutils
 
 #endif

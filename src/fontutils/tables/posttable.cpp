@@ -10,7 +10,7 @@ PostTable::PostTable()
     : OTFTable(tag)
 {}
 
-void PostTable::parse(Buffer& dis)
+void PostTable::parse(InputBuffer& dis)
 {
     std::cout << "Parsing 'post'... " << std::endl;
 
@@ -25,19 +25,17 @@ void PostTable::parse(Buffer& dis)
     max_mem_type_1 = dis.read<uint32_t>();
 }
 
-Buffer PostTable::compile() const
+void PostTable::compile(OutputBuffer& out) const
 {
-    Buffer buf;
-    buf.add<Fixed>(version);
-    buf.add<Fixed>(italic_angle);
-    buf.add<int16_t>(underline_position);
-    buf.add<int16_t>(underline_thickness);
-    buf.add<uint32_t>(is_fixed_pitch);
-    buf.add<uint32_t>(min_mem_type_42);
-    buf.add<uint32_t>(max_mem_type_42);
-    buf.add<uint32_t>(min_mem_type_1);
-    buf.add<uint32_t>(max_mem_type_1);
-    return buf;
+    out.write<Fixed>(version);
+    out.write<Fixed>(italic_angle);
+    out.write<int16_t>(underline_position);
+    out.write<int16_t>(underline_thickness);
+    out.write<uint32_t>(is_fixed_pitch);
+    out.write<uint32_t>(min_mem_type_42);
+    out.write<uint32_t>(max_mem_type_42);
+    out.write<uint32_t>(min_mem_type_1);
+    out.write<uint32_t>(max_mem_type_1);
 }
 
 bool PostTable::operator==(OTFTable const& rhs) const noexcept

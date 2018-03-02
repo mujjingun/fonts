@@ -8,10 +8,13 @@
 namespace geul
 {
 
-static time_t timestamp()
+namespace
 {
-    std::time_t now = std::time(nullptr);
-    return now + 2082844800;
+    time_t timestamp()
+    {
+        std::time_t now = std::time(nullptr);
+        return now + 2082844800;
+    }
 }
 
 HeadTable::HeadTable()
@@ -26,7 +29,7 @@ HeadTable::HeadTable()
     // TODO: set glyph bounding box
 }
 
-void HeadTable::parse(Buffer& dis)
+void HeadTable::parse(InputBuffer& dis)
 {
     std::cout << "Parsing 'head'... " << std::endl;
 
@@ -62,56 +65,52 @@ void HeadTable::parse(Buffer& dis)
     glyph_data_format = dis.read<uint16_t>();
 }
 
-Buffer HeadTable::compile() const
+void HeadTable::compile(OutputBuffer& out) const
 {
-    Buffer buf;
-
     // majorVersion
-    buf.add<uint16_t>(1);
+    out.write<uint16_t>(1);
     // minorVersion
-    buf.add<uint16_t>(0);
+    out.write<uint16_t>(0);
     // fontRevision
-    buf.add<Fixed>(font_revision);
+    out.write<Fixed>(font_revision);
 
     // Set to zero, directly written to the memory afterwards
-    buf.add<uint32_t>(0);
+    out.write<uint32_t>(0);
 
     // magicNumber
-    buf.add<uint32_t>(0x5F0F3CF5);
+    out.write<uint32_t>(0x5F0F3CF5);
 
     // flags
-    buf.add<uint16_t>(BASELINE_AT_ZERO | LSB_AT_ZERO);
+    out.write<uint16_t>(BASELINE_AT_ZERO | LSB_AT_ZERO);
 
     // unitsPerEm
-    buf.add<uint16_t>(units_per_em);
+    out.write<uint16_t>(units_per_em);
 
     // created
-    buf.add<int64_t>(created);
+    out.write<int64_t>(created);
     // modified
-    buf.add<int64_t>(modified);
+    out.write<int64_t>(modified);
 
     // bounding box for all glyphs
-    buf.add<int16_t>(xmin);
-    buf.add<int16_t>(ymin);
-    buf.add<int16_t>(xmax);
-    buf.add<int16_t>(ymax);
+    out.write<int16_t>(xmin);
+    out.write<int16_t>(ymin);
+    out.write<int16_t>(xmax);
+    out.write<int16_t>(ymax);
 
     // macStyle
-    buf.add<int16_t>(0);
+    out.write<int16_t>(0);
 
     // lowestRecPPEM
-    buf.add<int16_t>(3);
+    out.write<int16_t>(3);
 
     // fontDirectionHint (deprecated, set to 2)
-    buf.add<uint16_t>(2);
+    out.write<uint16_t>(2);
 
     // indexToLocFormat (set to short, Offset16)
-    buf.add<uint16_t>(0);
+    out.write<uint16_t>(0);
 
     // glyphDataFormat (current)
-    buf.add<uint16_t>(0);
-
-    return buf;
+    out.write<uint16_t>(0);
 }
 
 bool HeadTable::operator==(OTFTable const& rhs) const noexcept

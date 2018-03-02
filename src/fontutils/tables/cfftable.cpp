@@ -17,7 +17,7 @@ CFFTable::CFFTable()
     : OTFTable(tag)
 {}
 
-void CFFTable::parse(Buffer& dis)
+void CFFTable::parse(InputBuffer& dis)
 {
     std::cout << "Parsing 'CFF '..." << std::endl;
 
@@ -36,7 +36,7 @@ void CFFTable::parse(Buffer& dis)
     dis.read<uint8_t>();
 
     // Seek to name index
-    dis.seek(beginning + header_size);
+    dis.seek(beginning + std::streamoff(header_size));
 
     auto name_index = parse_index(dis);
     auto num_fonts = name_index.count;
@@ -44,7 +44,7 @@ void CFFTable::parse(Buffer& dis)
 
     for (auto name : name_index)
     {
-        auto orig_pos = dis.seek(name.offset);
+        auto orig_pos = dis.seek(name.pos);
         fonts[name.index].name = dis.read_string(name.length);
         dis.seek(orig_pos);
     }
@@ -58,7 +58,7 @@ void CFFTable::parse(Buffer& dis)
                                   standard_strings.end() };
     for (auto str : string_index)
     {
-        auto orig_pos = dis.seek(str.offset);
+        auto orig_pos = dis.seek(str.pos);
         sid.push_back(dis.read_string(str.length));
         dis.seek(orig_pos);
     }
@@ -72,18 +72,18 @@ void CFFTable::parse(Buffer& dis)
     // parse top dict
     for (auto dict : dict_index)
     {
-        auto  orig_pos = dis.seek(dict.offset);
+        auto  orig_pos = dis.seek(dict.pos);
         auto& font = fonts[dict.index];
         auto& fontinfo = font.fontinfo;
 
-        int charset_offset = -1;
-        int charstrings_offset = -1;
-        int fdarray_offset = -1;
-        int fdselect_offset = -1;
+        std::streampos charset_offset = -1;
+        std::streampos charstrings_offset = -1;
+        std::streampos fdarray_offset = -1;
+        std::streampos fdselect_offset = -1;
 
         std::vector<CFFToken> operands;
         bool                  is_first_op = true;
-        while (dis.tell() < dict.offset + dict.length)
+        while (dis.tell() < dict.pos + std::streamoff(dict.length))
         {
             auto token = next_token(dis);
             if (token.get_type() & CFFToken::number)
@@ -231,7 +231,7 @@ void CFFTable::parse(Buffer& dis)
                         "number of 'charset' operands != 1");
                 auto charset = operands[0].to_int();
                 if (charset > 2)
-                    charset_offset = beginning + charset;
+                    charset_offset = beginning + std::streampos(charset);
                 else // TODO: implement standard charset
                     throw std::runtime_error("standard charset unimplemented");
             }
@@ -244,7 +244,8 @@ void CFFTable::parse(Buffer& dis)
                 if (operands.size() != 1)
                     throw std::runtime_error(
                         "number of 'charstrings' operands != 1");
-                charstrings_offset = beginning + operands[0].to_int();
+                charstrings_offset
+                    = beginning + std::streamoff(operands[0].to_int());
             }
             else if (op == CFFToken::Op::syntheticbase)
             {
@@ -319,14 +320,16 @@ void CFFTable::parse(Buffer& dis)
                 if (operands.size() != 1)
                     throw std::runtime_error(
                         "number of 'fdarray' operands != 1");
-                fdarray_offset = beginning + operands[0].to_int();
+                fdarray_offset
+                    = beginning + std::streamoff(operands[0].to_int());
             }
             else if (op == CFFToken::Op::fdselect)
             {
                 if (operands.size() != 1)
                     throw std::runtime_error(
                         "number of 'fdselect' operands != 1");
-                fdselect_offset = beginning + operands[0].to_int();
+                fdselect_offset
+                    = beginning + std::streamoff(operands[0].to_int());
             }
             else
             {
@@ -413,12 +416,12 @@ void CFFTable::parse(Buffer& dis)
         lsubrs.emplace_back(fd_index.count);
         for (auto fditem : fd_index)
         {
-            auto&  font_dict = font.fd_array[fditem.index];
-            size_t priv_size, priv_offset;
+            auto& font_dict = font.fd_array[fditem.index];
+            int   priv_size, priv_offset = -1;
 
-            dis.seek(fditem.offset);
+            dis.seek(fditem.pos);
             std::vector<CFFToken> operands;
-            while (dis.tell() < fditem.offset + fditem.length)
+            while (dis.tell() < fditem.pos + std::streamoff(fditem.length))
             {
                 auto token = next_token(dis);
                 if (token.get_type() & CFFToken::number)
@@ -439,7 +442,8 @@ void CFFTable::parse(Buffer& dis)
                 else if (op == CFFToken::Op::private_)
                 {
                     priv_size = operands[0].to_int();
-                    priv_offset = beginning + operands[1].to_int();
+                    priv_offset
+                        = beginning + std::streamoff(operands[1].to_int());
                 }
                 else
                 {
@@ -449,11 +453,15 @@ void CFFTable::parse(Buffer& dis)
             } // font dict
 
             // parse private dict
+            if (priv_offset == -1)
+                throw std::runtime_error("No private dict found");
+
             int subrs_offset = -1;
 
             operands.clear();
+
             dis.seek(priv_offset);
-            while (dis.tell() < priv_offset + priv_size)
+            while (int(dis.tell()) < priv_offset + priv_size)
             {
                 auto token = next_token(dis);
                 if (token.get_type() & CFFToken::number)
@@ -623,7 +631,7 @@ void CFFTable::parse(Buffer& dis)
                 auto subrs_index = parse_index(dis);
                 for (auto item : subrs_index)
                 {
-                    dis.seek(item.offset);
+                    dis.seek(item.pos);
                     lsubrs[dict.index][fditem.index].push_back(
                         dis.read_string(item.length));
                 }
@@ -638,7 +646,7 @@ void CFFTable::parse(Buffer& dis)
     std::vector<std::string> gsubrs;
     for (auto item : gsubr_index)
     {
-        auto orig_pos = dis.seek(item.offset);
+        auto orig_pos = dis.seek(item.pos);
         gsubrs.push_back(dis.read_string(item.length));
         dis.seek(orig_pos);
     }
@@ -651,7 +659,7 @@ void CFFTable::parse(Buffer& dis)
         font.glyphs.resize(index.count);
         for (auto item : index)
         {
-            dis.seek(item.offset);
+            dis.seek(item.pos);
             int fd_idx = font.fd_select[item.index];
             font.glyphs[item.index] = parse_charstring(
                 dis.read_string(item.length),
@@ -663,29 +671,25 @@ void CFFTable::parse(Buffer& dis)
     }
 }
 
-Buffer CFFTable::compile() const
+void CFFTable::compile(OutputBuffer& out) const
 {
-    Buffer buf;
+    auto beginning = out.tell();
 
     // major version
-    buf.add<uint8_t>(1);
+    out.write<uint8_t>(1);
 
     // minor version
-    buf.add<uint8_t>(0);
+    out.write<uint8_t>(0);
 
     // header size
-    buf.add<uint8_t>(4);
+    out.write<uint8_t>(4);
 
     // FIXME: offset size
-    buf.add<uint8_t>(4);
+    out.write<uint8_t>(4);
 
     // write name index
-    {
-        std::vector<Buffer> names;
-        for (auto const& font : fonts)
-            names.push_back(Buffer(font.name));
-        buf.append(write_index(std::move(names)));
-    }
+    write_index(
+        out, fonts.size(), [&](int idx) { out.write_string(fonts[idx].name); });
 
     // string -> sid mapping
     std::unordered_map<std::string, size_t> sid_map;
@@ -705,43 +709,256 @@ Buffer CFFTable::compile() const
         }
     };
 
-    // buffer to store data to be added at the end
-    Buffer append_buf;
+    // write top dict
+    std::vector<std::streampos> charset_offs, cs_offs, fdarray_offs, fdsel_offs;
+
+    write_index(out, fonts.size(), [&](int idx) {
+        auto const&          font = fonts[idx];
+        auto const&          fontinfo = font.fontinfo;
+        const Font::FontInfo dflt{};
+
+        // write ROS
+        write_token(out, get_sid(fontinfo.registry));
+        write_token(out, get_sid(fontinfo.ordering));
+        write_token(out, fontinfo.supplement);
+        write_token(out, CFFToken::Op::ros);
+
+        // write normal top out entries
+        if (dflt.version != fontinfo.version)
+        {
+            write_token(out, get_sid(fontinfo.version));
+            write_token(out, CFFToken::Op::version);
+        }
+
+        if (dflt.notice != fontinfo.notice)
+        {
+            write_token(out, get_sid(fontinfo.notice));
+            write_token(out, CFFToken::Op::notice);
+        }
+
+        if (dflt.copyright != fontinfo.copyright)
+        {
+            write_token(out, get_sid(fontinfo.copyright));
+            write_token(out, CFFToken::Op::copyright);
+        }
+
+        if (dflt.fullname != fontinfo.fullname)
+        {
+            write_token(out, get_sid(fontinfo.fullname));
+            write_token(out, CFFToken::Op::fullname);
+        }
+
+        if (dflt.familyname != fontinfo.familyname)
+        {
+            write_token(out, get_sid(fontinfo.familyname));
+            write_token(out, CFFToken::Op::familyname);
+        }
+
+        if (dflt.weight != fontinfo.weight)
+        {
+            write_token(out, get_sid(fontinfo.weight));
+            write_token(out, CFFToken::Op::weight);
+        }
+
+        if (dflt.is_fixed_pitch != fontinfo.is_fixed_pitch)
+        {
+            write_token(out, fontinfo.is_fixed_pitch);
+            write_token(out, CFFToken::Op::isfixedpitch);
+        }
+
+        if (dflt.italic_angle != fontinfo.italic_angle)
+        {
+            write_token(out, fontinfo.italic_angle);
+            write_token(out, CFFToken::Op::italicangle);
+        }
+
+        if (dflt.underline_position != fontinfo.underline_position)
+        {
+            write_token(out, fontinfo.underline_position);
+            write_token(out, CFFToken::Op::underlineposition);
+        }
+
+        if (dflt.underline_thickness != fontinfo.underline_thickness)
+        {
+            write_token(out, fontinfo.underline_thickness);
+            write_token(out, CFFToken::Op::underlinethickness);
+        }
+
+        if (dflt.paint_type != fontinfo.paint_type)
+        {
+            write_token(out, fontinfo.paint_type);
+            write_token(out, CFFToken::Op::painttype);
+        }
+
+        if (dflt.charstring_type != fontinfo.charstring_type)
+        {
+            write_token(out, fontinfo.charstring_type);
+            write_token(out, CFFToken::Op::charstringtype);
+        }
+
+        if (dflt.font_matrix != fontinfo.font_matrix)
+        {
+            for (double d : fontinfo.font_matrix)
+                write_token(out, d);
+            write_token(out, CFFToken::Op::fontmatrix);
+        }
+
+        if (dflt.unique_id != fontinfo.unique_id)
+        {
+            write_token(out, fontinfo.unique_id);
+            write_token(out, CFFToken::Op::uniqueid);
+        }
+
+        if (dflt.font_bbox != fontinfo.font_bbox)
+        {
+            for (int i : fontinfo.font_bbox)
+                write_token(out, i);
+            write_token(out, CFFToken::Op::fontbbox);
+        }
+
+        if (dflt.stroke_width != fontinfo.stroke_width)
+        {
+            write_token(out, fontinfo.stroke_width);
+            write_token(out, CFFToken::Op::strokewidth);
+        }
+
+        if (dflt.xuid != fontinfo.xuid)
+        {
+            for (int i : fontinfo.xuid)
+                write_token(out, i);
+            write_token(out, CFFToken::Op::xuid);
+        }
+
+        if (dflt.postscript != fontinfo.postscript)
+        {
+            write_token(out, get_sid(fontinfo.postscript));
+            write_token(out, CFFToken::Op::postscript);
+        }
+
+        if (dflt.basefont_name != fontinfo.basefont_name)
+        {
+            write_token(out, get_sid(fontinfo.basefont_name));
+            write_token(out, CFFToken::Op::basefontname);
+        }
+
+        if (dflt.basefont_blend != fontinfo.basefont_blend)
+        {
+            write_token(out, fontinfo.basefont_blend);
+            write_token(out, CFFToken::Op::basefontblend);
+        }
+
+        // write CID font top out entries
+        if (dflt.cid_font_version != fontinfo.cid_font_version)
+        {
+            write_token(out, fontinfo.cid_font_version);
+            write_token(out, CFFToken::Op::cidfontversion);
+        }
+
+        if (dflt.cid_font_revision != fontinfo.cid_font_revision)
+        {
+            write_token(out, fontinfo.cid_font_revision);
+            write_token(out, CFFToken::Op::cidfontrevision);
+        }
+
+        if (dflt.cid_font_type != fontinfo.cid_font_type)
+        {
+            write_token(out, fontinfo.cid_font_type);
+            write_token(out, CFFToken::Op::cidfonttype);
+        }
+
+        if (dflt.cid_count != fontinfo.cid_count)
+        {
+            write_token(out, fontinfo.cid_count);
+            write_token(out, CFFToken::Op::cidcount);
+        }
+
+        if (dflt.uid_base != fontinfo.uid_base)
+        {
+            write_token(out, fontinfo.uid_base);
+            write_token(out, CFFToken::Op::uidbase);
+        }
+
+        // add placeholder for 'charset'
+        {
+            charset_offs.push_back(out.tell());
+            write_token(out, 0xfffffff);
+            write_token(out, CFFToken::Op::charset);
+        }
+
+        // add placeholder for 'charstrings'
+        {
+            cs_offs.push_back(out.tell());
+            write_token(out, 0xfffffff);
+            write_token(out, CFFToken::Op::charstrings);
+        }
+
+        // add placeholder for 'fdselect'
+        {
+            fdsel_offs.push_back(out.tell());
+            write_token(out, 0xfffffff);
+            write_token(out, CFFToken::Op::fdselect);
+        }
+
+        // add placeholder for 'fdarray'
+        {
+            fdarray_offs.push_back(out.tell());
+            write_token(out, 0xfffffff);
+            write_token(out, CFFToken::Op::fdarray);
+        }
+    });
+
+    // write SID Strings INDEX
+    // TODO: do this after building SID list
+    {
+        auto                     std_size = standard_strings.size();
+        std::vector<std::string> sids(sid_map.size() - std_size);
+        for (auto const& item : sid_map)
+        {
+            if (item.second >= std_size)
+                sids[item.second - std_size] = item.first;
+        }
+        write_index(out, sids.size(), [&](int idx) {
+            out.write_string(sids[idx]);
+        });
+    }
+
+    // write gsubr INDEX
+    // write empty subrs for now
+    write_index(out, 0, nullptr);
 
     // write Charsets
+    int idx = 0;
     for (auto const& font : fonts)
     {
-        std::ostringstream oss;
-        oss << "charset/" << font.name;
-        append_buf.add_marker(append_buf.size(), oss.str());
+        write_token_at(out, charset_offs[idx], int(out.tell() - beginning));
 
         // Format 2
-        append_buf.add<uint8_t>(2);
+        out.write<uint8_t>(2);
         int start = font.charset[1], last = start;
         for (auto i = 2u; i < font.charset.size(); ++i)
         {
             int s = font.charset[i];
             if (last + 1 != s)
             {
-                append_buf.add<uint16_t>(start);
-                append_buf.add<uint16_t>(last - start);
+                out.write<uint16_t>(start);
+                out.write<uint16_t>(last - start);
                 start = s;
             }
             last = s;
         }
-        append_buf.add<uint16_t>(start);
-        append_buf.add<uint16_t>(last - start);
+        out.write<uint16_t>(start);
+        out.write<uint16_t>(last - start);
+
+        idx++;
     }
 
     // write FDSelect (GID -> FD mapping)
     for (auto const& font : fonts)
     {
-        std::ostringstream oss;
-        oss << "fdselect/" << font.name;
-        append_buf.add_marker(append_buf.size(), oss.str());
+        write_token_at(out, fdsel_offs[idx], int(out.tell() - beginning));
 
         // fdselect format 3
-        append_buf.add<uint8_t>(3);
+        out.write<uint8_t>(3);
 
         struct FDSelectRange
         {
@@ -762,84 +979,75 @@ Buffer CFFTable::compile() const
         ranges.push_back({ start, val });
 
         // number of ranges
-        append_buf.add<uint16_t>(ranges.size());
+        out.write<uint16_t>(ranges.size());
 
         for (auto range : ranges)
         {
-            append_buf.add<uint16_t>(range.first);
-            append_buf.add<uint8_t>(range.fd);
+            out.write<uint16_t>(range.first);
+            out.write<uint8_t>(range.fd);
         }
 
         // sentinel GID
-        append_buf.add<uint16_t>(font.fd_select.size());
+        out.write<uint16_t>(font.fd_select.size());
     }
 
     // write CharStrings INDEX
+    idx = 0;
     for (auto const& font : fonts)
     {
-        std::ostringstream oss;
-        oss << "charstrings/" << font.name;
-        append_buf.add_marker(append_buf.size(), oss.str());
+        write_token_at(out, cs_offs[idx], int(out.tell() - beginning));
 
-        std::vector<Buffer> index;
-        for (auto const& glyph : font.glyphs)
-        {
-            index.push_back(write_charstring(glyph));
-        }
-        append_buf.append(write_index(std::move(index)));
+        write_index(out, font.glyphs.size(), [&](int i) {
+            write_charstring(out, font.glyphs[i]);
+        });
+
+        idx++;
     }
+
+    std::vector<std::vector<std::streampos>> priv_offs;
 
     // write Font Dict Array
     for (auto const& font : fonts)
     {
-        std::ostringstream oss;
-        oss << "fdarray/" << font.name;
-        append_buf.add_marker(append_buf.size(), oss.str());
+        write_token_at(out, fdarray_offs[idx], int(out.tell() - beginning));
 
-        std::vector<Buffer> index;
+        priv_offs.push_back({});
+        write_index(out, font.fd_array.size(), [&](int i) {
+            write_token(out, get_sid(font.fd_array[i].name));
+            write_token(out, CFFToken::Op::fontname);
 
-        for (auto const& font_dict : font.fd_array)
-        {
-            Buffer fdbuf;
-            write_token(fdbuf, get_sid(font_dict.name));
-            write_token(fdbuf, CFFToken::Op::fontname);
+            // placeholders for private dict size and offset
+            priv_offs.back().push_back(out.tell());
+            write_token(out, 0xfffffff);
+            write_token(out, 0xfffffff);
 
-            // write private dict size and offset
-            std::ostringstream oss;
-            oss << "private_off_size/" << font.name << "/" << font_dict.name;
-            fdbuf.add_marker(fdbuf.size(), oss.str());
-            write_token(fdbuf, 0xfffffff);
-            write_token(fdbuf, 0xfffffff);
-            write_token(fdbuf, CFFToken::Op::private_);
-
-            index.push_back(std::move(fdbuf));
-        }
-        append_buf.append(write_index(std::move(index)));
+            write_token(out, CFFToken::Op::private_);
+        });
     }
 
+    std::vector<std::vector<std::streampos>> subr_offs;
+
     // write Private dict
+    idx = 0;
     for (auto const& font : fonts)
     {
-        std::vector<Buffer> index;
-        for (auto const& font_dict : font.fd_array)
-        {
-            const Font::FontDict dflt{};
-            Buffer               pbuf;
+        subr_offs.push_back({});
 
-            std::ostringstream start_marker_name;
-            start_marker_name << "private/" << font.name << "/"
-                              << font_dict.name;
-            pbuf.add_marker(0, start_marker_name.str());
+        write_index(out, font.fd_array.size(), [&](int i) {
+            auto offset = out.tell();
+
+            auto const&          font_dict = font.fd_array[i];
+            const Font::FontDict dflt{};
 
             // write 'bluevalues'
             {
                 int last = 0;
                 for (int val : font_dict.blue_values)
                 {
-                    write_token(pbuf, val - last);
+                    write_token(out, val - last);
                     last = val;
                 }
-                write_token(pbuf, CFFToken::Op::bluevalues);
+                write_token(out, CFFToken::Op::bluevalues);
             }
 
             // write 'otherblues'
@@ -847,10 +1055,10 @@ Buffer CFFTable::compile() const
                 int last = 0;
                 for (int val : font_dict.other_blues)
                 {
-                    write_token(pbuf, val - last);
+                    write_token(out, val - last);
                     last = val;
                 }
-                write_token(pbuf, CFFToken::Op::otherblues);
+                write_token(out, CFFToken::Op::otherblues);
             }
 
             // write 'familyblues'
@@ -858,10 +1066,10 @@ Buffer CFFTable::compile() const
                 int last = 0;
                 for (int val : font_dict.family_blues)
                 {
-                    write_token(pbuf, val - last);
+                    write_token(out, val - last);
                     last = val;
                 }
-                write_token(pbuf, CFFToken::Op::familyblues);
+                write_token(out, CFFToken::Op::familyblues);
             }
 
             // write 'familyotherblues'
@@ -869,45 +1077,45 @@ Buffer CFFTable::compile() const
                 int last = 0;
                 for (int val : font_dict.family_other_blues)
                 {
-                    write_token(pbuf, val - last);
+                    write_token(out, val - last);
                     last = val;
                 }
-                write_token(pbuf, CFFToken::Op::familyotherblues);
+                write_token(out, CFFToken::Op::familyotherblues);
             }
 
             if (dflt.blue_scale != font_dict.blue_scale)
             {
-                write_token(pbuf, font_dict.blue_scale);
-                write_token(pbuf, CFFToken::Op::bluescale);
+                write_token(out, font_dict.blue_scale);
+                write_token(out, CFFToken::Op::bluescale);
             }
 
             if (dflt.blue_shift != font_dict.blue_shift)
             {
-                write_token(pbuf, font_dict.blue_shift);
-                write_token(pbuf, CFFToken::Op::blueshift);
+                write_token(out, font_dict.blue_shift);
+                write_token(out, CFFToken::Op::blueshift);
             }
 
             if (dflt.blue_fuzz != font_dict.blue_fuzz)
             {
-                write_token(pbuf, font_dict.blue_fuzz);
-                write_token(pbuf, CFFToken::Op::bluefuzz);
+                write_token(out, font_dict.blue_fuzz);
+                write_token(out, CFFToken::Op::bluefuzz);
             }
 
-            write_token(pbuf, font_dict.std_hw);
-            write_token(pbuf, CFFToken::Op::stdhw);
+            write_token(out, font_dict.std_hw);
+            write_token(out, CFFToken::Op::stdhw);
 
-            write_token(pbuf, font_dict.std_vw);
-            write_token(pbuf, CFFToken::Op::stdvw);
+            write_token(out, font_dict.std_vw);
+            write_token(out, CFFToken::Op::stdvw);
 
             // write 'stemsnaph'
             {
                 int last = 0;
                 for (int val : font_dict.stem_snap_h)
                 {
-                    write_token(pbuf, val - last);
+                    write_token(out, val - last);
                     last = val;
                 }
-                write_token(pbuf, CFFToken::Op::stemsnaph);
+                write_token(out, CFFToken::Op::stemsnaph);
             }
 
             // write 'stemsnapv'
@@ -915,405 +1123,86 @@ Buffer CFFTable::compile() const
                 int last = 0;
                 for (int val : font_dict.stem_snap_v)
                 {
-                    write_token(pbuf, val - last);
+                    write_token(out, val - last);
                     last = val;
                 }
-                write_token(pbuf, CFFToken::Op::stemsnapv);
+                write_token(out, CFFToken::Op::stemsnapv);
             }
 
             if (dflt.force_bold != font_dict.force_bold)
             {
-                write_token(pbuf, font_dict.force_bold);
-                write_token(pbuf, CFFToken::Op::forcebold);
+                write_token(out, font_dict.force_bold);
+                write_token(out, CFFToken::Op::forcebold);
             }
 
             if (dflt.language_group != font_dict.language_group)
             {
-                write_token(pbuf, font_dict.language_group);
-                write_token(pbuf, CFFToken::Op::languagegroup);
+                write_token(out, font_dict.language_group);
+                write_token(out, CFFToken::Op::languagegroup);
             }
 
             if (dflt.expansion_factor != font_dict.expansion_factor)
             {
-                write_token(pbuf, font_dict.expansion_factor);
-                write_token(pbuf, CFFToken::Op::expansionfactor);
+                write_token(out, font_dict.expansion_factor);
+                write_token(out, CFFToken::Op::expansionfactor);
             }
 
             if (dflt.initial_random_seed != font_dict.initial_random_seed)
             {
-                write_token(pbuf, font_dict.initial_random_seed);
-                write_token(pbuf, CFFToken::Op::initialrandomseed);
+                write_token(out, font_dict.initial_random_seed);
+                write_token(out, CFFToken::Op::initialrandomseed);
             }
 
             if (dflt.default_width_x != font_dict.default_width_x)
             {
-                write_token(pbuf, font_dict.default_width_x);
-                write_token(pbuf, CFFToken::Op::defaultwidthx);
+                write_token(out, font_dict.default_width_x);
+                write_token(out, CFFToken::Op::defaultwidthx);
             }
 
             if (dflt.nominal_width_x != font_dict.nominal_width_x)
             {
-                write_token(pbuf, font_dict.nominal_width_x);
-                write_token(pbuf, CFFToken::Op::nominalwidthx);
+                write_token(out, font_dict.nominal_width_x);
+                write_token(out, CFFToken::Op::nominalwidthx);
             }
 
             // 5-byte placeholder for local subr offset (from start of priv
             // dict)
-            std::ostringstream oss;
-            oss << "local_subr_off/" << font.name << "/" << font_dict.name;
-            pbuf.add_marker(pbuf.size(), oss.str());
-            write_token(pbuf, 0xfffffff);
-            write_token(pbuf, CFFToken::Op::subrs);
+            subr_offs.back().push_back(out.tell());
+            write_token(out, 0xfffffff);
+            write_token(out, CFFToken::Op::subrs);
 
-            std::ostringstream end_marker_name;
-            end_marker_name << "private_end/" << font.name << "/"
-                            << font_dict.name;
-            pbuf.add_marker(pbuf.size(), end_marker_name.str());
+            // write size and offset of this private dict in the fdarray
+            auto len = out.tell() - offset;
+            write_token_at(out, priv_offs[idx][i], int(len));
+            write_token_at(
+                out,
+                priv_offs[idx][i] + std::streamoff(5),
+                int(offset - beginning));
+        });
 
-            index.push_back(std::move(pbuf));
-        }
-        append_buf.append(write_index(std::move(index)));
+        idx++;
     }
 
     // write Local Subr INDEX
+    idx = 0;
     for (auto const& font : fonts)
     {
+        int fd_idx = 0;
         for (auto const& font_dict : font.fd_array)
         {
-            std::ostringstream oss;
-            oss << "local_subr/" << font.name << "/" << font_dict.name;
-            append_buf.add_marker(append_buf.size(), oss.str());
-
-            std::vector<Buffer> index;
+            write_token_at(
+                out, subr_offs[idx][fd_idx], int(out.tell() - beginning));
 
             // write empty subrs for now
-            append_buf.append(write_index(std::move(index)));
+            write_index(out, 0, nullptr);
+
+            (void) font_dict;
+
+            fd_idx++;
         }
+
+        idx++;
     }
-
-    // write top dict
-    std::vector<Buffer> dicts;
-    for (auto const& font : fonts)
-    {
-        auto const&          fontinfo = font.fontinfo;
-        const Font::FontInfo dflt{};
-        Buffer               dict;
-
-        // write ROS
-        write_token(dict, get_sid(fontinfo.registry));
-        write_token(dict, get_sid(fontinfo.ordering));
-        write_token(dict, fontinfo.supplement);
-        write_token(dict, CFFToken::Op::ros);
-
-        // write normal top dict entries
-        if (dflt.version != fontinfo.version)
-        {
-            write_token(dict, get_sid(fontinfo.version));
-            write_token(dict, CFFToken::Op::version);
-        }
-
-        if (dflt.notice != fontinfo.notice)
-        {
-            write_token(dict, get_sid(fontinfo.notice));
-            write_token(dict, CFFToken::Op::notice);
-        }
-
-        if (dflt.copyright != fontinfo.copyright)
-        {
-            write_token(dict, get_sid(fontinfo.copyright));
-            write_token(dict, CFFToken::Op::copyright);
-        }
-
-        if (dflt.fullname != fontinfo.fullname)
-        {
-            write_token(dict, get_sid(fontinfo.fullname));
-            write_token(dict, CFFToken::Op::fullname);
-        }
-
-        if (dflt.familyname != fontinfo.familyname)
-        {
-            write_token(dict, get_sid(fontinfo.familyname));
-            write_token(dict, CFFToken::Op::familyname);
-        }
-
-        if (dflt.weight != fontinfo.weight)
-        {
-            write_token(dict, get_sid(fontinfo.weight));
-            write_token(dict, CFFToken::Op::weight);
-        }
-
-        if (dflt.is_fixed_pitch != fontinfo.is_fixed_pitch)
-        {
-            write_token(dict, fontinfo.is_fixed_pitch);
-            write_token(dict, CFFToken::Op::isfixedpitch);
-        }
-
-        if (dflt.italic_angle != fontinfo.italic_angle)
-        {
-            write_token(dict, fontinfo.italic_angle);
-            write_token(dict, CFFToken::Op::italicangle);
-        }
-
-        if (dflt.underline_position != fontinfo.underline_position)
-        {
-            write_token(dict, fontinfo.underline_position);
-            write_token(dict, CFFToken::Op::underlineposition);
-        }
-
-        if (dflt.underline_thickness != fontinfo.underline_thickness)
-        {
-            write_token(dict, fontinfo.underline_thickness);
-            write_token(dict, CFFToken::Op::underlinethickness);
-        }
-
-        if (dflt.paint_type != fontinfo.paint_type)
-        {
-            write_token(dict, fontinfo.paint_type);
-            write_token(dict, CFFToken::Op::painttype);
-        }
-
-        if (dflt.charstring_type != fontinfo.charstring_type)
-        {
-            write_token(dict, fontinfo.charstring_type);
-            write_token(dict, CFFToken::Op::charstringtype);
-        }
-
-        if (dflt.font_matrix != fontinfo.font_matrix)
-        {
-            for (double d : fontinfo.font_matrix)
-                write_token(dict, d);
-            write_token(dict, CFFToken::Op::fontmatrix);
-        }
-
-        if (dflt.unique_id != fontinfo.unique_id)
-        {
-            write_token(dict, fontinfo.unique_id);
-            write_token(dict, CFFToken::Op::uniqueid);
-        }
-
-        if (dflt.font_bbox != fontinfo.font_bbox)
-        {
-            for (int i : fontinfo.font_bbox)
-                write_token(dict, i);
-            write_token(dict, CFFToken::Op::fontbbox);
-        }
-
-        if (dflt.stroke_width != fontinfo.stroke_width)
-        {
-            write_token(dict, fontinfo.stroke_width);
-            write_token(dict, CFFToken::Op::strokewidth);
-        }
-
-        if (dflt.xuid != fontinfo.xuid)
-        {
-            for (int i : fontinfo.xuid)
-                write_token(dict, i);
-            write_token(dict, CFFToken::Op::xuid);
-        }
-
-        if (dflt.postscript != fontinfo.postscript)
-        {
-            write_token(dict, get_sid(fontinfo.postscript));
-            write_token(dict, CFFToken::Op::postscript);
-        }
-
-        if (dflt.basefont_name != fontinfo.basefont_name)
-        {
-            write_token(dict, get_sid(fontinfo.basefont_name));
-            write_token(dict, CFFToken::Op::basefontname);
-        }
-
-        if (dflt.basefont_blend != fontinfo.basefont_blend)
-        {
-            write_token(dict, fontinfo.basefont_blend);
-            write_token(dict, CFFToken::Op::basefontblend);
-        }
-
-        // write CID font top dict entries
-        if (dflt.cid_font_version != fontinfo.cid_font_version)
-        {
-            write_token(dict, fontinfo.cid_font_version);
-            write_token(dict, CFFToken::Op::cidfontversion);
-        }
-
-        if (dflt.cid_font_revision != fontinfo.cid_font_revision)
-        {
-            write_token(dict, fontinfo.cid_font_revision);
-            write_token(dict, CFFToken::Op::cidfontrevision);
-        }
-
-        if (dflt.cid_font_type != fontinfo.cid_font_type)
-        {
-            write_token(dict, fontinfo.cid_font_type);
-            write_token(dict, CFFToken::Op::cidfonttype);
-        }
-
-        if (dflt.cid_count != fontinfo.cid_count)
-        {
-            write_token(dict, fontinfo.cid_count);
-            write_token(dict, CFFToken::Op::cidcount);
-        }
-
-        if (dflt.uid_base != fontinfo.uid_base)
-        {
-            write_token(dict, fontinfo.uid_base);
-            write_token(dict, CFFToken::Op::uidbase);
-        }
-
-        // add placeholder for 'charset'
-        {
-            std::ostringstream oss;
-            oss << "charset_off/" << font.name;
-            dict.add_marker(dict.size(), oss.str());
-            write_token(dict, 0xfffffff);
-            write_token(dict, CFFToken::Op::charset);
-        }
-
-        // add placeholder for 'charstrings'
-        {
-            std::ostringstream oss;
-            oss << "charstrings_off/" << font.name;
-            dict.add_marker(dict.size(), oss.str());
-            write_token(dict, 0xfffffff);
-            write_token(dict, CFFToken::Op::charstrings);
-        }
-
-        // add placeholder for 'fdarray'
-        {
-            std::ostringstream oss;
-            oss << "fdarray_off/" << font.name;
-            dict.add_marker(dict.size(), oss.str());
-            write_token(dict, 0xfffffff);
-            write_token(dict, CFFToken::Op::fdarray);
-        }
-
-        // add placeholder for 'fdselect'
-        {
-            std::ostringstream oss;
-            oss << "fdselect_off/" << font.name;
-            dict.add_marker(dict.size(), oss.str());
-            write_token(dict, 0xfffffff);
-            write_token(dict, CFFToken::Op::fdselect);
-        }
-
-        dicts.push_back(std::move(dict));
-    }
-    buf.append(write_index(std::move(dicts)));
-
-    // write SID Strings INDEX
-    {
-        const size_t        std_size = standard_strings.size();
-        std::vector<Buffer> sids(sid_map.size() - std_size);
-        for (auto const& item : sid_map)
-        {
-            if (item.second >= std_size)
-                sids[item.second - std_size] = Buffer(item.first);
-        }
-        buf.append(write_index(std::move(sids)));
-    }
-
-    // write gsubr INDEX
-    {
-        std::vector<Buffer> index;
-
-        // write empty subrs for now
-        buf.append(write_index(std::move(index)));
-    }
-
-    // add rest of the data
-    buf.append(std::move(append_buf));
-
-    // write actual offset values to placeholders
-    for (auto const& font : fonts)
-    {
-        // write charset offset values
-        {
-            std::ostringstream off;
-            off << "charset_off/" << font.name;
-            buf.seek(buf.marker(off.str()));
-
-            std::ostringstream start;
-            start << "charset/" << font.name;
-            buf.write<uint8_t>(29);
-            buf.write<uint32_t>(buf.marker(start.str()));
-        }
-
-        // write charstrings offset values
-        {
-            std::ostringstream off;
-            off << "charstrings_off/" << font.name;
-            buf.seek(buf.marker(off.str()));
-
-            std::ostringstream start;
-            start << "charstrings/" << font.name;
-            buf.write<uint8_t>(29);
-            buf.write<uint32_t>(buf.marker(start.str()));
-        }
-
-        // write fdarray offset values
-        {
-            std::ostringstream off;
-            off << "fdarray_off/" << font.name;
-            buf.seek(buf.marker(off.str()));
-
-            std::ostringstream start;
-            start << "fdarray/" << font.name;
-            buf.write<uint8_t>(29);
-            buf.write<uint32_t>(buf.marker(start.str()));
-        }
-
-        // write fdselect offset values
-        {
-            std::ostringstream off;
-            off << "fdselect_off/" << font.name;
-            buf.seek(buf.marker(off.str()));
-
-            std::ostringstream start;
-            start << "fdselect/" << font.name;
-            buf.write<uint8_t>(29);
-            buf.write<uint32_t>(buf.marker(start.str()));
-        }
-
-        for (auto const& font_dict : font.fd_array)
-        {
-            std::ostringstream priv_start_m;
-            priv_start_m << "private/" << font.name << "/" << font_dict.name;
-            size_t priv_start = buf.marker(priv_start_m.str());
-
-            std::ostringstream priv_end_m;
-            priv_end_m << "private_end/" << font.name << "/" << font_dict.name;
-            size_t priv_end = buf.marker(priv_end_m.str());
-
-            std::ostringstream subr_off;
-            subr_off << "local_subr_off/" << font.name << "/" << font_dict.name;
-            buf.seek(buf.marker(subr_off.str()));
-
-            std::ostringstream subr_start_m;
-            subr_start_m << "local_subr/" << font.name << "/" << font_dict.name;
-            size_t subr_start = buf.marker(subr_start_m.str());
-
-            // write 5-byte dict integer offset to local subr
-            buf.write<uint8_t>(29);
-            buf.write<uint32_t>(subr_start - priv_start);
-
-            std::ostringstream priv_off_size;
-            priv_off_size << "private_off_size/" << font.name << "/"
-                          << font_dict.name;
-            buf.seek(buf.marker(priv_off_size.str()));
-
-            // write size and offset of private dict
-            buf.write<uint8_t>(29);
-            buf.write<uint32_t>(priv_end - priv_start);
-            buf.write<uint8_t>(29);
-            buf.write<uint32_t>(priv_start);
-        }
-    }
-
-    // remove all offset markers
-    buf.clear_markers();
-    buf.seek(0);
-
-    return buf;
 }
 
 bool CFFTable::operator==(OTFTable const& rhs) const noexcept

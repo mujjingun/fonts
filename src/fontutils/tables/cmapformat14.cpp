@@ -11,7 +11,7 @@ CmapFormat14Subtable::CmapFormat14Subtable(
     : CmapSubtable(platform_id, encoding_id)
 {}
 
-void CmapFormat14Subtable::parse(Buffer& dis)
+void CmapFormat14Subtable::parse(InputBuffer& dis)
 {
     auto beginning = dis.tell();
 
@@ -25,32 +25,32 @@ void CmapFormat14Subtable::parse(Buffer& dis)
     auto num_uvs_selectors = dis.read<uint32_t>();
     for (auto i = 0u; i < num_uvs_selectors; ++i)
     {
-        char32_t var_selector = dis.read_nbytes(3);
+        char32_t var_selector = dis.read_nint(3);
 
         UVS uvs;
 
-        uint32_t default_uvs_offset = dis.read<uint32_t>();
+        std::streamoff default_uvs_offset = dis.read<uint32_t>();
         if (default_uvs_offset > 0)
         {
             auto orig_pos = dis.seek(beginning + default_uvs_offset);
             auto num_ranges = dis.read<uint32_t>();
             for (auto i = 0u; i < num_ranges; ++i)
             {
-                char32_t start_val = dis.read_nbytes(3);
+                char32_t start_val = dis.read_nint(3);
                 int      count = dis.read<uint8_t>() + 1;
                 uvs.dflt.push_back({ start_val, count });
             }
             dis.seek(orig_pos);
         }
 
-        uint32_t special_uvs_offset = dis.read<uint32_t>();
+        std::streamoff special_uvs_offset = dis.read<uint32_t>();
         if (special_uvs_offset > 0)
         {
             auto orig_pos = dis.seek(beginning + special_uvs_offset);
             auto num_uvs_mappings = dis.read<uint32_t>();
             for (auto i = 0u; i < num_uvs_mappings; ++i)
             {
-                char32_t unicode_value = dis.read_nbytes(3);
+                char32_t unicode_value = dis.read_nint(3);
                 auto     gid = dis.read<uint16_t>();
                 uvs.special.push_back({ unicode_value, gid });
             }
@@ -61,71 +61,70 @@ void CmapFormat14Subtable::parse(Buffer& dis)
     }
 }
 
-Buffer CmapFormat14Subtable::compile() const
+void CmapFormat14Subtable::compile(OutputBuffer& out) const
 {
-    Buffer buf;
+    auto beginning = out.tell();
 
     // Format 14
-    buf.add<uint16_t>(14);
+    out.write<uint16_t>(14);
 
-    size_t head_length = 10 + 11 * map.size();
+    // placeholder for length
+    auto length_pos = out.tell();
+    out.write<uint32_t>(0);
 
-    Buffer uvs_buf;
-    struct Offsets
-    {
-        uint32_t dflt = 0, special = 0;
-    };
-    std::map<char32_t, Offsets> offset_map;
+    // numVarSelectorRecords
+    out.write<uint32_t>(map.size());
+
+    std::map<char32_t, std::streampos> offsets;
+
     for (auto const& selector : map)
     {
+        // varSelector
+        out.write_nint(3, selector.first);
+
+        offsets[selector.first] = out.tell();
+
+        // placeholder for defaultUVSOffset
+        out.write<uint32_t>(0);
+
+        // placeholder for nonDefaultUVSOffset
+        out.write<uint32_t>(0);
+    }
+
+    for (auto const& selector : map)
+    {
+        char32_t   ch = selector.first;
         UVS const& uvs = selector.second;
         size_t     dflt_size = uvs.dflt.size();
         size_t     special_size = uvs.special.size();
+
         if (dflt_size > 0)
         {
-            offset_map[selector.first].dflt = head_length + uvs_buf.size();
-            uvs_buf.add<uint32_t>(dflt_size);
+            out.write_at<uint32_t>(offsets[ch], out.tell() - beginning);
+
+            out.write<uint32_t>(dflt_size);
             for (auto const& range : uvs.dflt)
             {
-                uvs_buf.add_nbytes(3, range.start_val);
-                uvs_buf.add<uint8_t>(range.count - 1);
+                out.write_nint(3, range.start_val);
+                out.write<uint8_t>(range.count - 1);
             }
         }
 
         if (special_size > 0)
         {
-            offset_map[selector.first].special = head_length + uvs_buf.size();
-            uvs_buf.add<uint32_t>(special_size);
+            out.write_at<uint32_t>(
+                offsets[ch] + std::streamoff(4), out.tell() - beginning);
+
+            out.write<uint32_t>(special_size);
             for (auto const& mapping : uvs.special)
             {
-                uvs_buf.add_nbytes(3, mapping.unicode);
-                uvs_buf.add<uint16_t>(mapping.gid);
+                out.write_nint(3, mapping.unicode);
+                out.write<uint16_t>(mapping.gid);
             }
         }
     }
 
-    // length
-    buf.add<uint32_t>(head_length + uvs_buf.size());
-
-    // numVarSelectorRecords
-    buf.add<uint32_t>(map.size());
-    for (auto const& selector : map)
-    {
-        // varSelector
-        buf.add_nbytes(3, selector.first);
-
-        auto offsets = offset_map[selector.first];
-
-        // defaultUVSOffset
-        buf.add<uint32_t>(offsets.dflt);
-
-        // nonDefaultUVSOffset
-        buf.add<uint32_t>(offsets.special);
-    }
-
-    buf.append(std::move(uvs_buf));
-
-    return buf;
+    out.write_at<uint32_t>(length_pos, out.tell() - beginning);
 }
 
 bool CmapFormat14Subtable::operator==(OTFTable const& rhs) const noexcept

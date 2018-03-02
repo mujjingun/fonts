@@ -12,7 +12,7 @@ CmapFormat12Subtable::CmapFormat12Subtable(
     : CmapSubtable(platform_id, encoding_id)
 {}
 
-void CmapFormat12Subtable::parse(Buffer& dis)
+void CmapFormat12Subtable::parse(InputBuffer& dis)
 {
     auto format = dis.read<uint16_t>();
     if (format != 12)
@@ -41,15 +41,13 @@ void CmapFormat12Subtable::parse(Buffer& dis)
     }
 }
 
-Buffer CmapFormat12Subtable::compile() const
+void CmapFormat12Subtable::compile(OutputBuffer& out) const
 {
-    Buffer buf;
-
     // Format 12
-    buf.add<uint16_t>(12);
+    out.write<uint16_t>(12);
 
     // reserved
-    buf.add<uint16_t>(0);
+    out.write<uint16_t>(0);
 
     struct SequentialMapGroup
     {
@@ -86,18 +84,16 @@ Buffer CmapFormat12Subtable::compile() const
     group_list.push_back({ begin, last, begin_gid });
 
     auto length = 16 + group_list.size() * 12;
-    buf.add<uint32_t>(length);
-    buf.add<uint32_t>(language);
-    buf.add<uint32_t>(group_list.size());
+    out.write<uint32_t>(length);
+    out.write<uint32_t>(language);
+    out.write<uint32_t>(group_list.size());
 
     for (auto const& group : group_list)
     {
-        buf.add<uint32_t>(group.start_char_code);
-        buf.add<uint32_t>(group.end_char_code);
-        buf.add<uint32_t>(group.start_glyph_id);
+        out.write<uint32_t>(group.start_char_code);
+        out.write<uint32_t>(group.end_char_code);
+        out.write<uint32_t>(group.start_glyph_id);
     }
-
-    return buf;
 }
 
 bool CmapFormat12Subtable::operator==(OTFTable const& rhs) const noexcept

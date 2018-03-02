@@ -15,11 +15,11 @@ class Font : public OTFTable
 {
 public:
     Font();
-    virtual void   parse(Buffer& dis) override;
-    virtual Buffer compile() const override;
-    virtual bool   operator==(OTFTable const& rhs) const noexcept override;
+    virtual void parse(InputBuffer& dis) override;
+    virtual void compile(OutputBuffer& out) const override;
+    virtual bool operator==(OTFTable const& rhs) const noexcept override;
 
-    Glyph &glyph(char32_t ch);
+    Glyph& glyph(char32_t ch);
 
 private:
     std::map<std::string, std::unique_ptr<OTFTable>> tables;

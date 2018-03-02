@@ -5,22 +5,23 @@ set(UTILS_SOURCE_FILES
     csparser.cpp
     glyph.cpp
     otfparser.cpp
+    endian.cpp
 
     tables/otftable.cpp
+    tables/font.cpp
+    tables/generictable.cpp
     tables/headtable.cpp
+    tables/hmtxtable.cpp
+    tables/maxptable.cpp
+    tables/hheatable.cpp
     tables/cmaptable.cpp
     tables/cmapformat4.cpp
     tables/cmapformat12.cpp
     tables/cmapformat14.cpp
     tables/cmapsubtable.cpp
-    tables/hheatable.cpp
-    tables/hmtxtable.cpp
     tables/nametable.cpp
-    tables/maxptable.cpp
     tables/os2table.cpp
     tables/posttable.cpp
-    tables/font.cpp
-    tables/generictable.cpp
     tables/cfftable.cpp
     )
 add_library(${PROJECT_NAME}utils STATIC ${UTILS_SOURCE_FILES})

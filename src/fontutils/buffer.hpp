@@ -1,136 +1,50 @@
 #ifndef FONTUTILS_BUFFER_HPP
 #define FONTUTILS_BUFFER_HPP
 
-#include <array>
-#include <cstring>
-#include <stdexcept>
+#include <ios>
+#include <memory>
+#include <streambuf>
 #include <string>
-#include <unordered_map>
+
+#include "endian.hpp"
 
 namespace geul
 {
+class OutputBuffer;
 
-enum class Fixed : uint32_t
+class InputBuffer
 {
-};
+protected:
+    std::ios::openmode              mode;
+    std::unique_ptr<std::streambuf> buf;
 
-using Tag = std::array<uint8_t, 4>;
+    InputBuffer() = default;
 
-template <typename T> inline T to_machine_endian(char const*)
-{
-    static_assert((T{}, 0), "Cannot convert type to machine endian");
-}
+    template <typename T> void read_impl(T* dest, size_t count) const
+    {
+        char bytes[sizeof(T)];
+        for (auto i = 0u; i < count; ++i)
+        {
+            int n = buf->sgetn(bytes, sizeof(T));
+            if (n < int(sizeof(T)))
+                throw std::runtime_error("Attempt to read beyond buffer.");
+            dest[i] = to_machine_endian<T>(bytes);
+        }
+    }
 
-template <> char     to_machine_endian(char const* buf);
-template <> uint8_t  to_machine_endian(char const* buf);
-template <> int8_t   to_machine_endian(char const* buf);
-template <> uint16_t to_machine_endian(char const* buf);
-template <> int16_t  to_machine_endian(char const* buf);
-template <> uint32_t to_machine_endian(char const* buf);
-template <> int32_t  to_machine_endian(char const* buf);
-template <> uint64_t to_machine_endian(char const* buf);
-template <> int64_t  to_machine_endian(char const* buf);
-template <> Tag      to_machine_endian(char const* buf);
-template <> Fixed    to_machine_endian(char const* buf);
-
-template <typename T> void to_big_endian(char*, T)
-{
-    static_assert((T{}, 0), "Cannot convert type to big endian");
-}
-
-template <> void to_big_endian(char* buf, char t);
-template <> void to_big_endian(char* buf, uint8_t t);
-template <> void to_big_endian(char* buf, int8_t t);
-template <> void to_big_endian(char* buf, uint16_t t);
-template <> void to_big_endian(char* buf, int16_t t);
-template <> void to_big_endian(char* buf, uint32_t t);
-template <> void to_big_endian(char* buf, int32_t t);
-template <> void to_big_endian(char* buf, uint64_t t);
-template <> void to_big_endian(char* buf, int64_t t);
-template <> void to_big_endian(char* buf, Tag t);
-template <> void to_big_endian(char* buf, Fixed t);
-
-class Buffer
-{
-    std::string arr = "";
-    size_t      pos = 0;
-
-    std::unordered_map<std::string, size_t> markers = {};
+    friend OutputBuffer;
 
 public:
-    Buffer() = default;
-    explicit Buffer(std::string const& data);
-    explicit Buffer(std::string&& data);
-    Buffer(Buffer const&) = delete;
-    Buffer(Buffer&&) = default;
-    Buffer& operator=(Buffer const&) = delete;
-    Buffer& operator=(Buffer&&) = default;
-
-    /// Write bytes starting from the current postion
-    /// of the buffer, UB if it goes over the bounds
-    template <typename T> void write(T* ptr, size_t count)
-    {
-        size_t n_bytes = sizeof(T) * count;
-
-        if (pos + n_bytes > size())
-            throw std::range_error("Attempt to write beyond buffer size");
-
-        for (auto i = 0u; i < count; ++i)
-        {
-            to_big_endian<T>(&arr[pos + i * sizeof(T)], ptr[i]);
-        }
-
-        pos += n_bytes;
-    }
-
-    /// Convenience function for writing 1 item
-    template <typename T> void write(T t)
-    {
-        write(&t, 1);
-    }
-
-    /// Add bytes at the end of the buffer,
-    /// regardless of the current position
-    template <typename T> void add(T const* ptr, size_t count)
-    {
-        size_t n_bytes = sizeof(T) * count;
-        size_t orig_size = arr.size();
-        arr.resize(orig_size + n_bytes);
-
-        for (auto i = 0u; i < count; ++i)
-        {
-            to_big_endian<T>(&arr[orig_size + i * sizeof(T)], ptr[i]);
-        }
-    }
-
-    /// Convenience function for adding 1 item
-    template <typename T> void add(T t)
-    {
-        add(&t, 1);
-    }
-
-    /// Add n-byte integer (n = 1..4)
-    void add_nbytes(int n, uint32_t t);
-
-    /// Append another buffer to the end of this one
-    void append(Buffer&& buf);
-
-    /// Pad to 4-byte boundary
-    void pad();
+    static InputBuffer open(std::string filename);
+    explicit InputBuffer(std::string&& data);
 
     /// Peek items from the buffer staring from the
     /// current position
     template <typename T> void peek(T* dest, size_t count) const
     {
-        size_t n_bytes = sizeof(T) * count;
-
-        if (pos + n_bytes > size())
-            throw std::range_error("Attempt to read beyond buffer size");
-
-        for (auto i = 0u; i < count; ++i)
-        {
-            dest[i] = to_machine_endian<T>(&arr[pos + i * sizeof(T)]);
-        }
+        auto orig_pos = buf->pubseekoff(0, std::ios::cur, mode);
+        read_impl(dest, count);
+        buf->pubseekpos(orig_pos, mode);
     }
 
     /// Convenience function for peeking 1 item
@@ -145,8 +59,7 @@ public:
     /// current position, and increment position
     template <typename T> void read(T* dest, size_t count)
     {
-        peek(dest, count);
-        pos += sizeof(T) * count;
+        read_impl(dest, count);
     }
 
     /// Convenience function for reading 1 item
@@ -157,26 +70,79 @@ public:
         return t;
     }
 
-    std::string read_string(size_t length);
+    /// Read std::string of length `length`
+    std::string read_string(std::streamsize length);
 
     /// Read n-byte integer (n = 1..4)
-    uint32_t read_nbytes(int n);
+    uint32_t read_nint(int n);
 
-    /// Set current offset
-    size_t seek(size_t off);
+    /// Set current offset from the beginning
+    /// returns original position
+    std::streampos seek(std::streampos pos);
 
-    /// Get current offset
-    size_t tell() const;
+    /// Seek to the beginning
+    std::streampos seek_begin();
 
+    /// Seek to the end
+    std::streampos seek_end();
+
+    /// Current position on the stream
+    std::streampos tell() const;
+
+    /// Size of the buffer for only string-backed buffers
     size_t size() const;
+};
 
-    size_t marker(std::string const& name) const;
+class OutputBuffer : public InputBuffer
+{
+    OutputBuffer() = default;
 
-    void add_marker(size_t pos, std::string const& name);
+public:
+    /// Make a file buffer
+    static OutputBuffer open(std::string filename);
 
-    void clear_markers();
+    /// Make a string buffer
+    explicit OutputBuffer(std::string&& data);
 
-    char* data();
+    /// Write bytes starting from the current postion
+    /// of the buffer
+    template <typename T> void write(T const* ptr, size_t count)
+    {
+        char bytes[sizeof(T)];
+        for (auto i = 0u; i < count; ++i)
+        {
+            to_big_endian<T>(bytes, ptr[i]);
+            int n = buf->sputn(bytes, sizeof(T));
+            if (n < int(sizeof(T)))
+                throw std::runtime_error("Cannot write to buffer.");
+        }
+    }
+
+    /// Convenience function for writing 1 item
+    template <typename T> void write(T t)
+    {
+        write(&t, 1);
+    }
+
+    /// Convenience function for writing 1 item at certain position
+    template <typename T> void write_at(std::streampos pos, T t)
+    {
+        auto orig_pos = seek(pos);
+        write(t);
+        seek(orig_pos);
+    }
+
+    /// Write string
+    void write_string(std::string const& str);
+
+    /// Write n-byte integer (n = 1..4)
+    void write_nint(int n, uint32_t t);
+
+    /// Write another buffer to the current pos
+    void write_buf(InputBuffer&& other);
+
+    /// Pad to 4-byte boundary
+    void pad();
 };
 }
 

@@ -10,7 +10,7 @@ OS2Table::OS2Table()
     : OTFTable(tag)
 {}
 
-void OS2Table::parse(Buffer& dis)
+void OS2Table::parse(InputBuffer& dis)
 {
     std::cout << "Parsing 'OS/2'... " << std::endl;
 
@@ -77,71 +77,69 @@ void OS2Table::parse(Buffer& dis)
     }
 }
 
-Buffer OS2Table::compile() const
+void OS2Table::compile(OutputBuffer& out) const
 {
-    Buffer buf;
-
     if (version == 3 || version == 4)
     {
-        buf.add<uint16_t>(version);
-        buf.add<int16_t>(x_avg_char_width);
-        buf.add<uint16_t>(us_weight_class);
-        buf.add<uint16_t>(us_width_class);
-        buf.add<uint16_t>(fs_type);
-        buf.add<int16_t>(y_subscript_x_size);
-        buf.add<int16_t>(y_subscript_y_size);
-        buf.add<int16_t>(y_subscript_x_offset);
-        buf.add<int16_t>(y_subscript_y_offset);
-        buf.add<int16_t>(y_superscript_x_size);
-        buf.add<int16_t>(y_superscript_y_size);
-        buf.add<int16_t>(y_superscript_x_offset);
-        buf.add<int16_t>(y_superscript_y_offset);
-        buf.add<int16_t>(y_strikeout_size);
-        buf.add<int16_t>(y_strikeout_position);
-        buf.add<int16_t>(s_family_class);
+        out.write<uint16_t>(version);
+        out.write<int16_t>(x_avg_char_width);
+        out.write<uint16_t>(us_weight_class);
+        out.write<uint16_t>(us_width_class);
+        out.write<uint16_t>(fs_type);
+        out.write<int16_t>(y_subscript_x_size);
+        out.write<int16_t>(y_subscript_y_size);
+        out.write<int16_t>(y_subscript_x_offset);
+        out.write<int16_t>(y_subscript_y_offset);
+        out.write<int16_t>(y_superscript_x_size);
+        out.write<int16_t>(y_superscript_y_size);
+        out.write<int16_t>(y_superscript_x_offset);
+        out.write<int16_t>(y_superscript_y_offset);
+        out.write<int16_t>(y_strikeout_size);
+        out.write<int16_t>(y_strikeout_position);
+        out.write<int16_t>(s_family_class);
 
         // panose
-        buf.add<uint8_t>(panose.b_family_type);
-        buf.add<uint8_t>(panose.b_serif_type);
-        buf.add<uint8_t>(panose.b_weight);
-        buf.add<uint8_t>(panose.b_proportion);
-        buf.add<uint8_t>(panose.b_contrast);
-        buf.add<uint8_t>(panose.b_stroke_variation);
-        buf.add<uint8_t>(panose.b_arm_style);
-        buf.add<uint8_t>(panose.b_letterform);
-        buf.add<uint8_t>(panose.b_midline);
-        buf.add<uint8_t>(panose.b_x_height);
+        out.write<uint8_t>(panose.b_family_type);
+        out.write<uint8_t>(panose.b_serif_type);
+        out.write<uint8_t>(panose.b_weight);
+        out.write<uint8_t>(panose.b_proportion);
+        out.write<uint8_t>(panose.b_contrast);
+        out.write<uint8_t>(panose.b_stroke_variation);
+        out.write<uint8_t>(panose.b_arm_style);
+        out.write<uint8_t>(panose.b_letterform);
+        out.write<uint8_t>(panose.b_midline);
+        out.write<uint8_t>(panose.b_x_height);
 
         // unicode range
-        buf.add<uint32_t>(ul_unicode_range.ul_unicode_range_1);
-        buf.add<uint32_t>(ul_unicode_range.ul_unicode_range_2);
-        buf.add<uint32_t>(ul_unicode_range.ul_unicode_range_3);
-        buf.add<uint32_t>(ul_unicode_range.ul_unicode_range_4);
+        out.write<uint32_t>(ul_unicode_range.ul_unicode_range_1);
+        out.write<uint32_t>(ul_unicode_range.ul_unicode_range_2);
+        out.write<uint32_t>(ul_unicode_range.ul_unicode_range_3);
+        out.write<uint32_t>(ul_unicode_range.ul_unicode_range_4);
 
-        buf.add<Tag>(ach_vend_id);
-        buf.add<uint16_t>(fs_selection);
-        buf.add<uint16_t>(us_first_char_index);
-        buf.add<uint16_t>(us_last_char_index);
-        buf.add<int16_t>(s_typo_ascender);
-        buf.add<int16_t>(s_typo_descender);
-        buf.add<int16_t>(s_typo_line_gap);
-        buf.add<uint16_t>(us_win_ascent);
-        buf.add<uint16_t>(us_win_descent);
+        out.write<Tag>(ach_vend_id);
+        out.write<uint16_t>(fs_selection);
+        out.write<uint16_t>(us_first_char_index);
+        out.write<uint16_t>(us_last_char_index);
+        out.write<int16_t>(s_typo_ascender);
+        out.write<int16_t>(s_typo_descender);
+        out.write<int16_t>(s_typo_line_gap);
+        out.write<uint16_t>(us_win_ascent);
+        out.write<uint16_t>(us_win_descent);
 
         // codepage range
-        buf.add<uint32_t>(ul_codepage_range.ul_codepage_range_1);
-        buf.add<uint32_t>(ul_codepage_range.ul_codepage_range_2);
+        out.write<uint32_t>(ul_codepage_range.ul_codepage_range_1);
+        out.write<uint32_t>(ul_codepage_range.ul_codepage_range_2);
 
-        buf.add<int16_t>(s_x_height);
-        buf.add<int16_t>(s_cap_height);
-        buf.add<uint16_t>(us_default_char);
-        buf.add<uint16_t>(us_break_char);
-        buf.add<uint16_t>(us_max_context);
+        out.write<int16_t>(s_x_height);
+        out.write<int16_t>(s_cap_height);
+        out.write<uint16_t>(us_default_char);
+        out.write<uint16_t>(us_break_char);
+        out.write<uint16_t>(us_max_context);
     }
     else
+    {
         throw std::runtime_error("Unsupported version of the OS/2 table.");
-
-    return buf;
+    }
 }
 
 bool OS2Table::operator==(OTFTable const& rhs) const noexcept

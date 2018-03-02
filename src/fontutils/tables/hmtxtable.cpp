@@ -12,7 +12,7 @@ HmtxTable::HmtxTable(size_t num_glyphs, size_t num_h_metrics)
     , lsbs(num_glyphs - num_h_metrics)
 {}
 
-void HmtxTable::parse(Buffer& dis)
+void HmtxTable::parse(InputBuffer& dis)
 {
     std::cout << "Parsing 'hmtx'... " << std::endl;
 
@@ -25,18 +25,15 @@ void HmtxTable::parse(Buffer& dis)
     dis.read<int16_t>(lsbs.data(), lsbs.size());
 }
 
-Buffer HmtxTable::compile() const
+void HmtxTable::compile(OutputBuffer& out) const
 {
-    Buffer buf;
     for (auto const& metric : metrics)
     {
-        buf.add<uint16_t>(metric.advance_width);
-        buf.add<int16_t>(metric.lsb);
+        out.write<uint16_t>(metric.advance_width);
+        out.write<int16_t>(metric.lsb);
     }
 
-    buf.add(lsbs.data(), lsbs.size());
-
-    return buf;
+    out.write(lsbs.data(), lsbs.size());
 }
 
 bool HmtxTable::operator==(OTFTable const& rhs) const noexcept

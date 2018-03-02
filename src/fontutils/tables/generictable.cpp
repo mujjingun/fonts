@@ -12,16 +12,16 @@ GenericTable::GenericTable(std::string tag, size_t length)
     data.resize(length);
 }
 
-void GenericTable::parse(Buffer& dis)
+void GenericTable::parse(InputBuffer& dis)
 {
     std::cout << "Unsupported table '" << id() << "'... " << std::endl;
 
     dis.read<char>(&data[0], data.size());
 }
 
-Buffer GenericTable::compile() const
+void GenericTable::compile(OutputBuffer& out) const
 {
-    return Buffer(data);
+    out.write_string(data);
 }
 
 bool GenericTable::operator==(OTFTable const& rhs) const noexcept

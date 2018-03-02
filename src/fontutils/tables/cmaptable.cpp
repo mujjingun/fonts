@@ -14,54 +14,55 @@ CmapTable::CmapTable()
     : OTFTable(tag)
 {}
 
-class unsupported_cmapsubtable_error : public std::runtime_error
+namespace
 {
-    using std::runtime_error::runtime_error;
-};
+    /// Factory function to make cmap subtables
+    std::unique_ptr<CmapSubtable> make_subtable(
+        InputBuffer&   dis,
+        std::streampos pos,
+        uint16_t       platform_id,
+        uint16_t       encoding_id)
+    {
+        auto orig_pos = dis.seek(pos);
+        auto format = dis.peek<uint16_t>();
 
-/// Factory function to make cmap subtables
-static std::unique_ptr<CmapSubtable> make_subtable(
-    Buffer& dis, size_t off, uint16_t platform_id, uint16_t encoding_id)
-{
-    auto orig_pos = dis.seek(off);
-    auto format = dis.read<uint16_t>();
+        std::unique_ptr<CmapSubtable> table;
+        if (format == 4)
+        {
+            table = std::make_unique<CmapFormat4Subtable>(
+                platform_id, encoding_id);
+        }
+        else if (format == 12)
+        {
+            table = std::make_unique<CmapFormat12Subtable>(
+                platform_id, encoding_id);
+        }
+        else if (format == 14)
+        {
+            table = std::make_unique<CmapFormat14Subtable>(
+                platform_id, encoding_id);
+        }
+        else
+        {
+            // return to original position
+            dis.seek(orig_pos);
 
-    std::unique_ptr<CmapSubtable> table;
-    if (format == 4)
-    {
-        table = std::make_unique<CmapFormat4Subtable>(platform_id, encoding_id);
-    }
-    else if (format == 12)
-    {
-        table
-            = std::make_unique<CmapFormat12Subtable>(platform_id, encoding_id);
-    }
-    else if (format == 14)
-    {
-        table
-            = std::make_unique<CmapFormat14Subtable>(platform_id, encoding_id);
-    }
-    else
-    {
+            std::cerr << "Unsupported cmap subtable format " << format << ".";
+
+            return nullptr;
+        }
+
+        // parse subtable
+        table->parse(dis);
+
         // return to original position
         dis.seek(orig_pos);
 
-        std::ostringstream oss;
-        oss << "Unsupported cmap subtable format " << format << ".";
-        throw unsupported_cmapsubtable_error(oss.str());
+        return table;
     }
-
-    // parse subtable
-    dis.seek(off);
-    table->parse(dis);
-
-    // return to original position
-    dis.seek(orig_pos);
-
-    return table;
 }
 
-void CmapTable::parse(Buffer& dis)
+void CmapTable::parse(InputBuffer& dis)
 {
     std::cout << "Parsing 'cmap'... " << std::endl;
 
@@ -75,61 +76,57 @@ void CmapTable::parse(Buffer& dis)
 
     for (auto i = 0u; i < num_tables; ++i)
     {
-        auto platform_id = dis.read<uint16_t>();
-        auto encoding_id = dis.read<uint16_t>();
-        auto off = dis.read<uint32_t>();
+        auto           platform_id = dis.read<uint16_t>();
+        auto           encoding_id = dis.read<uint16_t>();
+        std::streamoff off = dis.read<uint32_t>();
 
-        try
+        auto sub
+            = make_subtable(dis, beginning + off, platform_id, encoding_id);
+        if (sub)
         {
-            auto sub
-                = make_subtable(dis, beginning + off, platform_id, encoding_id);
             subtables.push_back(std::move(sub));
-        }
-        catch (unsupported_cmapsubtable_error const& e)
-        {
-            std::cerr << e.what() << std::endl;
-            std::cerr << "Skipped subtable." << std::endl;
         }
     }
 }
 
-Buffer CmapTable::compile() const
+void CmapTable::compile(OutputBuffer& out) const
 {
-    Buffer buf;
+    auto beginning = out.tell();
 
     // version
-    buf.add<uint16_t>(0);
+    out.write<uint16_t>(0);
 
     // numTables
-    buf.add<uint16_t>(subtables.size());
+    out.write<uint16_t>(subtables.size());
 
     // Compile subtables and store the offsets
-    Buffer              subtables_buf;
-    std::vector<size_t> offsets;
-    size_t              off = 4 + 8 * subtables.size();
-    for (auto const& sub : subtables)
-    {
-        Buffer sub_buf = sub->compile();
-        sub_buf.pad();
-
-        offsets.push_back(off);
-        off += sub_buf.size();
-
-        subtables_buf.append(std::move(sub_buf));
-    }
+    std::vector<std::streampos> offsets;
 
     // encodingRecords[numTables]
-    for (auto i = 0u; i < subtables.size(); ++i)
+    for (auto const& sub : subtables)
     {
-        buf.add<uint16_t>(subtables[i]->platform_id);
-        buf.add<uint16_t>(subtables[i]->encoding_id);
-        buf.add<uint32_t>(offsets[i]);
+        out.write<uint16_t>(sub->platform_id);
+        out.write<uint16_t>(sub->encoding_id);
+
+        // placeholder for offsets
+        offsets.push_back(out.tell());
+        out.write<uint32_t>(0);
     }
 
-    // append subtables
-    buf.append(std::move(subtables_buf));
+    int idx = 0;
+    for (auto const& sub : subtables)
+    {
+        // write offset
+        auto offset = out.tell() - beginning;
+        auto orig_pos = out.seek(offsets[idx]);
+        out.write<uint32_t>(offset);
+        out.seek(orig_pos);
 
-    return buf;
+        // write table
+        sub->compile(out);
+
+        idx++;
+    }
 }
 
 bool CmapTable::operator==(OTFTable const& rhs) const noexcept

@@ -10,7 +10,7 @@ HheaTable::HheaTable()
     : OTFTable(tag)
 {}
 
-void HheaTable::parse(Buffer& dis)
+void HheaTable::parse(InputBuffer& dis)
 {
     std::cout << "Parsing 'hhea'... " << std::endl;
 
@@ -43,35 +43,31 @@ void HheaTable::parse(Buffer& dis)
     num_h_metrics = dis.read<uint16_t>();
 }
 
-Buffer HheaTable::compile() const
+void HheaTable::compile(OutputBuffer& out) const
 {
-    Buffer buf;
-
     // version
-    buf.add<uint16_t>(1);
-    buf.add<uint16_t>(0);
+    out.write<uint16_t>(1);
+    out.write<uint16_t>(0);
 
-    buf.add<int16_t>(ascender);
-    buf.add<int16_t>(descender);
-    buf.add<int16_t>(line_gap);
-    buf.add<uint16_t>(advance_width_max);
-    buf.add<int16_t>(min_lsb);
-    buf.add<int16_t>(max_lsb);
-    buf.add<int16_t>(x_max_extent);
-    buf.add<int16_t>(caret_slope_rise);
-    buf.add<int16_t>(caret_slope_run);
-    buf.add<int16_t>(caret_offset);
+    out.write<int16_t>(ascender);
+    out.write<int16_t>(descender);
+    out.write<int16_t>(line_gap);
+    out.write<uint16_t>(advance_width_max);
+    out.write<int16_t>(min_lsb);
+    out.write<int16_t>(max_lsb);
+    out.write<int16_t>(x_max_extent);
+    out.write<int16_t>(caret_slope_rise);
+    out.write<int16_t>(caret_slope_run);
+    out.write<int16_t>(caret_offset);
 
     // reserved
-    buf.add<int16_t>(0);
-    buf.add<int16_t>(0);
-    buf.add<int16_t>(0);
-    buf.add<int16_t>(0);
+    out.write<int16_t>(0);
+    out.write<int16_t>(0);
+    out.write<int16_t>(0);
+    out.write<int16_t>(0);
 
-    buf.add<int16_t>(metric_data_format);
-    buf.add<uint16_t>(num_h_metrics);
-
-    return buf;
+    out.write<int16_t>(metric_data_format);
+    out.write<uint16_t>(num_h_metrics);
 }
 
 bool HheaTable::operator==(OTFTable const& rhs) const noexcept

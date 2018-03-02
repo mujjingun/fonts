@@ -17,7 +17,7 @@ Glyph parse_charstring(
     int                             default_width,
     int                             nominal_width);
 
-Buffer write_charstring(Glyph const& glyph);
+void write_charstring(OutputBuffer& out, Glyph const& glyph);
 }
 
 #endif

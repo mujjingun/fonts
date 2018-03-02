@@ -25,39 +25,41 @@ Font::Font()
     : OTFTable("sfnt")
 {}
 
-// Factory method for making tables
-static std::unique_ptr<OTFTable>
-make_table(std::string name, Buffer& dis, size_t offset, size_t length)
+namespace
 {
-    std::unique_ptr<OTFTable> table;
+    // Factory method for making tables
+    std::unique_ptr<OTFTable>
+    make_table(std::string name, InputBuffer& dis, size_t offset, size_t length)
+    {
+        std::unique_ptr<OTFTable> table;
+        if (name == "cmap")
+            table = std::make_unique<CmapTable>();
+        else if (name == "name")
+            table = std::make_unique<NameTable>();
+        else if (name == "OS/2")
+            table = std::make_unique<OS2Table>();
+        else if (name == "post")
+            table = std::make_unique<PostTable>();
+        else if (name == "CFF ")
+            table = std::make_unique<CFFTable>();
+        else if (name == "head")
+            table = std::make_unique<HeadTable>();
+        else if (name == "maxp")
+            table = std::make_unique<MaxpTable>();
+        else if (name == "hhea")
+            table = std::make_unique<HheaTable>();
+        else
+            table = std::make_unique<GenericTable>(name, length);
 
-    if (name == "cmap")
-        table = std::make_unique<CmapTable>();
-    else if (name == "head")
-        table = std::make_unique<HeadTable>();
-    else if (name == "name")
-        table = std::make_unique<NameTable>();
-    else if (name == "OS/2")
-        table = std::make_unique<OS2Table>();
-    else if (name == "post")
-        table = std::make_unique<PostTable>();
-    else if (name == "CFF ")
-        table = std::make_unique<CFFTable>();
-    else if (name == "maxp")
-        table = std::make_unique<MaxpTable>();
-    else if (name == "hhea")
-        table = std::make_unique<HheaTable>();
-    else
-        table = std::make_unique<GenericTable>(name, length);
+        auto orig_pos = dis.seek(offset);
+        table->parse(dis);
+        dis.seek(orig_pos);
 
-    auto orig_pos = dis.seek(offset);
-    table->parse(dis);
-    dis.seek(orig_pos);
-
-    return table;
+        return table;
+    }
 }
 
-void Font::parse(Buffer& dis)
+void Font::parse(InputBuffer& dis)
 {
     auto beginning = dis.tell();
 
@@ -112,7 +114,7 @@ void Font::parse(Buffer& dis)
         {
             std::ostringstream oss;
             oss << "Invalid checksum " << std::hex << checksum;
-            oss << "for table " << table_name << ".\n";
+            oss << " for table '" << table_name << "'.\n";
             oss << "Calculated : " << calc_checksum;
             throw std::runtime_error(oss.str());
         }
@@ -162,74 +164,91 @@ void Font::parse(Buffer& dis)
     tables["hmtx"] = std::move(hmtx);
 }
 
-Buffer Font::compile() const
+void Font::compile(OutputBuffer& out) const
 {
-    Buffer buf;
+    auto beginning = out.tell();
 
     // snft version
-    buf.add<uint32_t>(0x4F54544F);
+    out.write<uint32_t>(0x4F54544F);
 
     // numTables
-    buf.add<uint16_t>(tables.size());
+    out.write<uint16_t>(tables.size());
 
     // searchRange
     auto search_range = 16 * le_pow2(tables.size());
-    buf.add<uint16_t>(search_range);
+    out.write<uint16_t>(search_range);
     // entrySelector
-    buf.add<uint16_t>(std::ilogb(tables.size()));
+    out.write<uint16_t>(std::ilogb(tables.size()));
     // rangeShift
-    buf.add<uint16_t>(tables.size() * 16 - search_range);
+    out.write<uint16_t>(tables.size() * 16 - search_range);
 
-    Buffer   tables_data;
-    size_t   offset_table_size = 12 + 16 * tables.size();
-    uint32_t entire_checksum = 0;
-    int      checksum_adj_pos = -1;
+    std::vector<std::streampos> checksums;
+
     // Table Records
     for (auto const& pp : tables)
     {
         std::string table_name = pp.first;
-        auto const& table = pp.second;
+
         // table name
-        buf.add<char>(table_name.data(), 4);
+        out.write<char>(table_name.data(), 4);
 
-        Buffer table_buf = table->compile();
-        auto   length = table_buf.size();
-        table_buf.pad();
+        // placeholder for checksum
+        checksums.push_back(out.tell());
+        out.write<uint32_t>(0);
 
-        // checksum
-        uint32_t checksum = calculate_checksum(table_buf, length);
-        buf.add<uint32_t>(checksum);
+        // placeholder for offset
+        out.write<uint32_t>(0);
 
-        entire_checksum += checksum;
+        // placeholder for length
+        out.write<uint32_t>(0);
+    }
+    out.pad();
+    auto offset_table_size = out.tell() - beginning;
 
-        // offset
-        auto off = offset_table_size + tables_data.size();
-        buf.add<uint32_t>(off);
+    // Table data
+    uint32_t entire_checksum = 0;
+    int      checksum_adj_pos = -1;
+    int      idx = 0;
+    for (auto const& pp : tables)
+    {
+        std::string table_name = pp.first;
+        auto const& table = pp.second;
+
+        auto table_begin = out.tell();
 
         // Store position of checksumAdjustment
         if (table_name == "head")
-            checksum_adj_pos = off + 8;
+            checksum_adj_pos = table_begin + std::streamoff(8);
 
-        // length
-        buf.add<uint32_t>(length);
+        table->compile(out);
+        out.pad();
 
-        tables_data.append(std::move(table_buf));
+        auto length = out.seek(table_begin) - table_begin;
+        auto checksum = calculate_checksum(out, length);
+        entire_checksum += checksum;
+
+        // write checksum, offset, and length value
+        auto orig_pos = out.seek(checksums[idx]);
+        out.write<uint32_t>(checksum);
+        out.write<uint32_t>(table_begin - beginning);
+        out.write<uint32_t>(length);
+        out.seek(orig_pos);
+
+        idx++;
     }
+    out.pad();
 
     if (checksum_adj_pos == -1)
         throw std::runtime_error("'head' table not present");
 
-    buf.append(std::move(tables_data));
-    buf.pad();
-
     // set checksumAdjustment value
-    buf.seek(0);
-    entire_checksum += calculate_checksum(buf, offset_table_size);
-    buf.seek(checksum_adj_pos);
+    out.seek(beginning);
+    entire_checksum += calculate_checksum(out, offset_table_size);
+    out.seek(checksum_adj_pos);
     uint32_t checksum_adj = uint32_t(0xB1B0AFBA) - entire_checksum;
-    buf.write<uint32_t>(&checksum_adj, 1);
+    out.write<uint32_t>(checksum_adj);
 
-    return buf;
+    out.seek_end();
 }
 
 bool Font::operator==(OTFTable const& rhs) const noexcept
@@ -254,11 +273,11 @@ bool Font::operator==(OTFTable const& rhs) const noexcept
     return true;
 }
 
-Glyph &Font::glyph(char32_t ch)
+Glyph& Font::glyph(char32_t ch)
 {
-    auto &cmap = dynamic_cast<CmapTable&>(*tables["cmap"]);
-    auto &cff = dynamic_cast<CFFTable&>(*tables["CFF "]);
+    // auto& cmap = dynamic_cast<CmapTable&>(*tables["cmap"]);
+    // auto& cff = dynamic_cast<CFFTable&>(*tables["CFF "]);
     // TODO
-    return cff.fonts[0].glyphs[0];
+    // return cff.fonts[0].glyphs[0];
 }
 }
