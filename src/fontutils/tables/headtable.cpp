@@ -31,8 +31,6 @@ HeadTable::HeadTable()
 
 void HeadTable::parse(InputBuffer& dis)
 {
-    std::cout << "Parsing 'head'... " << std::endl;
-
     version = dis.read<Fixed>();
     if (version != Fixed(0x00010000))
         throw std::runtime_error("Unrecognized head table version");

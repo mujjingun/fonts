@@ -5,7 +5,6 @@ set(UTILS_SOURCE_FILES
     csparser.cpp
     glyph.cpp
     otfparser.cpp
-    endian.cpp
 
     tables/otftable.cpp
     tables/font.cpp

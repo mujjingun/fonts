@@ -5,6 +5,8 @@
 #include <pugixml.hpp>
 
 #include "fontutils/otfparser.hpp"
+#include "fontutils/cffutils.hpp"
+#include "fontutils/endian.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -12,10 +14,78 @@ int main(int argc, char* argv[])
 
     return RUN_ALL_TESTS();
 }
-/*
-TEST(token_writer, geul)
+
+TEST(geul, to_big_endian_convert)
 {
-    geul::OutputBuffer buf1, buf2;
+    {
+        char arr[4];
+        geul::to_big_endian<uint32_t>(arr, 0x12345678);
+        EXPECT_EQ(arr[0], 0x12);
+        EXPECT_EQ(arr[1], 0x34);
+        EXPECT_EQ(arr[2], 0x56);
+        EXPECT_EQ(arr[3], 0x78);
+    }
+
+    {
+        char arr[4];
+        geul::to_big_endian<int32_t>(arr, 0x12345678);
+        EXPECT_EQ(arr[0], 0x12);
+        EXPECT_EQ(arr[1], 0x34);
+        EXPECT_EQ(arr[2], 0x56);
+        EXPECT_EQ(arr[3], 0x78);
+    }
+
+    {
+        char arr[2];
+        geul::to_big_endian<int16_t>(arr, 0x1234);
+        EXPECT_EQ(arr[0], 0x12);
+        EXPECT_EQ(arr[1], 0x34);
+    }
+
+    {
+        char arr[8];
+        geul::to_big_endian<int64_t>(arr, 0x1234567844654321);
+        EXPECT_EQ(arr[0], 0x12);
+        EXPECT_EQ(arr[1], 0x34);
+        EXPECT_EQ(arr[2], 0x56);
+        EXPECT_EQ(arr[3], 0x78);
+        EXPECT_EQ(arr[4], 0x44);
+        EXPECT_EQ(arr[5], 0x65);
+        EXPECT_EQ(arr[6], 0x43);
+        EXPECT_EQ(arr[7], 0x21);
+    }
+}
+
+TEST(geul, to_machine_endian_convert)
+{
+    {
+        char arr[] = {0x12, 0x34, 0x56, 0x78};
+        auto val = geul::to_machine_endian<uint32_t>(arr);
+        EXPECT_EQ(val, 0x12345678);
+    }
+
+    {
+        char arr[] = {0x12, 0x34, 0x56, 0x78};
+        auto val = geul::to_machine_endian<int32_t>(arr);
+        EXPECT_EQ(val, 0x12345678);
+    }
+
+    {
+        char arr[] = {0x12, 0x34};
+        auto val = geul::to_machine_endian<int16_t>(arr);
+        EXPECT_EQ(val, 0x1234);
+    }
+
+    {
+        char arr[] = {0x12, 0x34, 0x56, 0x78, 0x44, 0x65, 0x43, 0x21};
+        auto val = geul::to_machine_endian<int64_t>(arr);
+        EXPECT_EQ(val, 0x1234567844654321);
+    }
+}
+
+TEST(geul, token_writer)
+{
+    geul::OutputBuffer buf1(""), buf2("");
     geul::write_token(buf1, -2.25);
     auto t1 = geul::next_token(buf1);
     EXPECT_EQ(t1.get_type(), geul::CFFToken::Type::floating);
@@ -28,7 +98,7 @@ TEST(token_writer, geul)
 
     for (int i = -2000; i < 2000; ++i)
     {
-        geul::OutputBuffer buf;
+        geul::OutputBuffer buf("");
         geul::write_token(buf, i);
         auto t = geul::next_token(buf);
         EXPECT_EQ(t.get_type(), geul::CFFToken::Type::integer);
@@ -36,7 +106,7 @@ TEST(token_writer, geul)
     }
 
     {
-        geul::OutputBuffer buf;
+        geul::OutputBuffer buf("");
         geul::write_token(buf, -12312312);
         auto t = geul::next_token(buf);
         EXPECT_EQ(t.get_type(), geul::CFFToken::Type::integer);
@@ -44,14 +114,14 @@ TEST(token_writer, geul)
     }
 
     {
-        geul::OutputBuffer buf;
+        geul::OutputBuffer buf("");
         geul::write_token(buf, 12312312);
         auto t = geul::next_token(buf);
         EXPECT_EQ(t.get_type(), geul::CFFToken::Type::integer);
         EXPECT_DOUBLE_EQ(t.to_int(), 12312312);
     }
 }
-*/
+
 TEST(write_font, geul)
 {
     auto files = {

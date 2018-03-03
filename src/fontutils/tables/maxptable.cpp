@@ -12,8 +12,6 @@ MaxpTable::MaxpTable()
 
 void MaxpTable::parse(InputBuffer& dis)
 {
-    std::cout << "Parsing 'maxp'... " << std::endl;
-
     version = dis.read<Fixed>();
     if (version == Fixed(0x00005000))
     {

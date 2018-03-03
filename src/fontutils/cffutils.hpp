@@ -124,7 +124,7 @@ void write_index(
 
 void write_token(OutputBuffer& out, CFFToken token);
 
-void write_token_at(OutputBuffer& out, std::streampos pos, CFFToken token);
+void write_5byte_offset_at(OutputBuffer& out, std::streampos pos, int val);
 } // namespace fontutils
 
 #endif

@@ -2,6 +2,7 @@
 #define TABLE_POST_TABLE_HPP
 
 #include "otftable.hpp"
+#include "../types.hpp"
 
 namespace geul
 {

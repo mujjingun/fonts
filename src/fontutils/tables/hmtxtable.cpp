@@ -14,8 +14,6 @@ HmtxTable::HmtxTable(size_t num_glyphs, size_t num_h_metrics)
 
 void HmtxTable::parse(InputBuffer& dis)
 {
-    std::cout << "Parsing 'hmtx'... " << std::endl;
-
     for (auto& metric : metrics)
     {
         metric.advance_width = dis.read<uint16_t>();

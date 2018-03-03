@@ -85,7 +85,8 @@ void Font::parse(InputBuffer& dis)
     uint32_t                         checksum_adjustment = 0;
     for (auto i = 0u; i < num_tables; ++i)
     {
-        Tag         tag = dis.read<Tag>();
+        Tag         tag;
+        dis.read<uint8_t>(tag.data(), 4);
         std::string table_name = std::string(tag.begin(), tag.end());
 
         uint32_t checksum = dis.read<uint32_t>();
@@ -275,9 +276,9 @@ bool Font::operator==(OTFTable const& rhs) const noexcept
 
 Glyph& Font::glyph(char32_t ch)
 {
-    // auto& cmap = dynamic_cast<CmapTable&>(*tables["cmap"]);
-    // auto& cff = dynamic_cast<CFFTable&>(*tables["CFF "]);
+    auto& cmap = dynamic_cast<CmapTable&>(*tables["cmap"]);
+    auto& cff = dynamic_cast<CFFTable&>(*tables["CFF "]);
     // TODO
-    // return cff.fonts[0].glyphs[0];
+    return cff.fonts[0].glyphs[0];
 }
 }

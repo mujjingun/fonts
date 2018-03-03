@@ -12,8 +12,6 @@ HheaTable::HheaTable()
 
 void HheaTable::parse(InputBuffer& dis)
 {
-    std::cout << "Parsing 'hhea'... " << std::endl;
-
     auto major_version = dis.read<uint16_t>();
     if (major_version != 1)
         throw std::runtime_error("Unrecognized head table major version");

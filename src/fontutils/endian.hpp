@@ -3,51 +3,48 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <array>
+#include <type_traits>
 
 namespace geul
 {
 
-enum class Fixed : uint32_t
+template <typename T> inline T to_machine_endian(char const* arr)
 {
-};
+    static_assert(
+        std::is_integral<T>::value || std::is_enum<T>::value,
+        "Type is not integral nor enum");
 
-using Tag = std::array<uint8_t, 4>;
+    using DataType = typename std::make_unsigned<T>::type;
 
-template <typename T> inline T to_machine_endian(char const*)
-{
-    static_assert((T{}, 0), "Cannot convert type to machine endian");
+    DataType ret = 0;
+    for (size_t i = 0; i < sizeof(T); ++i)
+    {
+        ret <<= 8;
+        ret |= arr[i] & 0xff;
+    }
+
+    return static_cast<T>(ret);
 }
 
-template <> char     to_machine_endian(char const* buf);
-template <> uint8_t  to_machine_endian(char const* buf);
-template <> int8_t   to_machine_endian(char const* buf);
-template <> uint16_t to_machine_endian(char const* buf);
-template <> int16_t  to_machine_endian(char const* buf);
-template <> uint32_t to_machine_endian(char const* buf);
-template <> int32_t  to_machine_endian(char const* buf);
-template <> uint64_t to_machine_endian(char const* buf);
-template <> int64_t  to_machine_endian(char const* buf);
-template <> Tag      to_machine_endian(char const* buf);
-template <> Fixed    to_machine_endian(char const* buf);
-
-template <typename T> void to_big_endian(char*, T)
+template <typename T> void to_big_endian(char* arr, T val)
 {
-    static_assert((T{}, 0), "Cannot convert type to big endian");
+    static_assert(
+        std::is_integral<T>::value || std::is_enum<T>::value,
+        "Type is not integral nor enum");
+
+    using DataType = typename std::make_unsigned<T>::type;
+
+    DataType t = static_cast<DataType>(val);
+
+    int      shift = (sizeof(T) - 1) * 8;
+    DataType mask = DataType(0xff) << shift;
+    for (size_t i = 0; i < sizeof(T); ++i)
+    {
+        arr[i] = (t & mask) >> shift;
+        shift -= 8;
+        mask >>= 8;
+    }
 }
-
-template <> void to_big_endian(char* buf, char t);
-template <> void to_big_endian(char* buf, uint8_t t);
-template <> void to_big_endian(char* buf, int8_t t);
-template <> void to_big_endian(char* buf, uint16_t t);
-template <> void to_big_endian(char* buf, int16_t t);
-template <> void to_big_endian(char* buf, uint32_t t);
-template <> void to_big_endian(char* buf, int32_t t);
-template <> void to_big_endian(char* buf, uint64_t t);
-template <> void to_big_endian(char* buf, int64_t t);
-template <> void to_big_endian(char* buf, Tag t);
-template <> void to_big_endian(char* buf, Fixed t);
-
 }
 
 #endif

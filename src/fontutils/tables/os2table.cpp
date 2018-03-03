@@ -12,8 +12,6 @@ OS2Table::OS2Table()
 
 void OS2Table::parse(InputBuffer& dis)
 {
-    std::cout << "Parsing 'OS/2'... " << std::endl;
-
     version = dis.read<uint16_t>();
     if (version == 3 || version == 4)
     {
@@ -51,7 +49,7 @@ void OS2Table::parse(InputBuffer& dis)
         ul_unicode_range.ul_unicode_range_3 = dis.read<uint32_t>();
         ul_unicode_range.ul_unicode_range_4 = dis.read<uint32_t>();
 
-        ach_vend_id = dis.read<Tag>();
+        dis.read<uint8_t>(ach_vend_id.data(), 4);
         fs_selection = dis.read<uint16_t>();
         us_first_char_index = dis.read<uint16_t>();
         us_last_char_index = dis.read<uint16_t>();
@@ -116,7 +114,7 @@ void OS2Table::compile(OutputBuffer& out) const
         out.write<uint32_t>(ul_unicode_range.ul_unicode_range_3);
         out.write<uint32_t>(ul_unicode_range.ul_unicode_range_4);
 
-        out.write<Tag>(ach_vend_id);
+        out.write<uint8_t>(ach_vend_id.data(), 4);
         out.write<uint16_t>(fs_selection);
         out.write<uint16_t>(us_first_char_index);
         out.write<uint16_t>(us_last_char_index);

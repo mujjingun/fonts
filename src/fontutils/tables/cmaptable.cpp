@@ -64,8 +64,6 @@ namespace
 
 void CmapTable::parse(InputBuffer& dis)
 {
-    std::cout << "Parsing 'cmap'... " << std::endl;
-
     auto beginning = dis.tell();
 
     auto version = dis.read<uint16_t>();

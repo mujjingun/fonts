@@ -2,6 +2,7 @@
 #define TABLES_HEAD_TABLE_HPP
 
 #include "otftable.hpp"
+#include "../types.hpp"
 
 #include <limits>
 
