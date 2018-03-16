@@ -6,7 +6,7 @@
 namespace geul
 {
 
-GenericTable::GenericTable(std::string tag, size_t length)
+GenericTable::GenericTable(std::string tag, std::size_t length)
     : OTFTable(std::move(tag))
 {
     data.resize(length);

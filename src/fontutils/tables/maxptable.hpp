@@ -11,7 +11,7 @@ class MaxpTable : public OTFTable
 {
 public:
     Fixed  version;
-    size_t num_glyphs;
+    std::size_t num_glyphs;
 
 public:
     MaxpTable();

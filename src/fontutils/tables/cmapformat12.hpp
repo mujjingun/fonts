@@ -14,7 +14,7 @@ public:
     uint32_t language = 0;
 
     // char -> gid mapping
-    std::map<uint32_t, uint32_t> cmap;
+    std::map<char32_t, uint32_t> cmap;
 
 public:
     CmapFormat12Subtable(uint16_t platform_id, uint16_t encoding_id);

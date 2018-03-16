@@ -30,8 +30,8 @@ void CmapFormat12Subtable::parse(InputBuffer& dis)
     auto num_groups = dis.read<uint32_t>();
     for (auto i = 0u; i < num_groups; ++i)
     {
-        uint32_t start_char_code = dis.read<uint32_t>();
-        uint32_t end_char_code = dis.read<uint32_t>();
+        char32_t start_char_code = dis.read<uint32_t>();
+        char32_t end_char_code = dis.read<uint32_t>();
         uint32_t start_glyph_id = dis.read<uint32_t>();
 
         for (auto c = start_char_code; c <= end_char_code; ++c)
@@ -51,20 +51,18 @@ void CmapFormat12Subtable::compile(OutputBuffer& out) const
 
     struct SequentialMapGroup
     {
-        uint32_t start_char_code;
-        uint32_t end_char_code;
+        char32_t start_char_code;
+        char32_t end_char_code;
         uint32_t start_glyph_id;
     };
     std::vector<SequentialMapGroup> group_list;
 
-    uint32_t begin = cmap.begin()->first, last = begin;
+    char32_t begin = cmap.begin()->first, last = begin;
     uint32_t begin_gid = cmap.begin()->second, last_gid = begin_gid;
     for (auto it = std::next(cmap.begin()); it != cmap.end(); ++it)
     {
-        uint32_t code, gid;
-
-        code = it->first;
-        gid = it->second;
+        char32_t code = it->first;
+        uint32_t gid = it->second;
 
         if (last + 1 != code || last_gid + 1 != gid)
         {

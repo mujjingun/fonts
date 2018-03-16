@@ -12,13 +12,13 @@ NameTable::NameTable()
 
 void NameTable::parse(InputBuffer& dis)
 {
-    size_t beginning = dis.tell();
+    std::size_t beginning = dis.tell();
 
     format = dis.read<uint16_t>();
     if (format == 0)
     {
         auto   count = dis.read<uint16_t>();
-        size_t offset = dis.read<uint16_t>();
+        std::size_t offset = dis.read<uint16_t>();
         for (auto i = 0u; i < count; ++i)
         {
             NameRecord record;
@@ -27,14 +27,15 @@ void NameTable::parse(InputBuffer& dis)
             record.language_id = dis.read<uint16_t>();
             record.name_id = dis.read<uint16_t>();
 
-            size_t len = dis.read<uint16_t>();
-            size_t stroff = dis.read<uint16_t>();
+            std::size_t len = dis.read<uint16_t>();
+            std::size_t stroff = dis.read<uint16_t>();
 
             record.str.resize(len);
 
-            auto orig_pos = dis.seek(beginning + offset + stroff);
-            dis.read<char>(&record.str[0], len);
-            dis.seek(orig_pos);
+            {
+                auto lock = dis.seek_lock(beginning + offset + stroff);
+                dis.read<char>(&record.str[0], len);
+            }
 
             records.push_back(record);
         }
@@ -52,10 +53,10 @@ void NameTable::compile(OutputBuffer& out) const
         out.write<uint16_t>(format);
         out.write<uint16_t>(records.size());
 
-        size_t offset = 6 + 12 * records.size();
+        std::size_t offset = 6 + 12 * records.size();
         out.write<uint16_t>(offset);
 
-        size_t off = 0;
+        std::size_t off = 0;
         for (auto const& record : records)
         {
             out.write<uint16_t>(record.platform_id);

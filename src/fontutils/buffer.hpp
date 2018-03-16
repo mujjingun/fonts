@@ -20,7 +20,7 @@ protected:
 
     InputBuffer() = default;
 
-    template <typename T> void read_impl(T* dest, size_t count) const
+    template <typename T> void read_impl(T* dest, std::size_t count) const
     {
         char bytes[sizeof(T)];
         for (auto i = 0u; i < count; ++i)
@@ -40,7 +40,7 @@ public:
 
     /// Peek items from the buffer staring from the
     /// current position
-    template <typename T> void peek(T* dest, size_t count) const
+    template <typename T> void peek(T* dest, std::size_t count) const
     {
         auto orig_pos = buf->pubseekoff(0, std::ios::cur, mode);
         read_impl(dest, count);
@@ -57,7 +57,7 @@ public:
 
     /// Read items from the buffer staring from the
     /// current position, and increment position
-    template <typename T> void read(T* dest, size_t count)
+    template <typename T> void read(T* dest, std::size_t count)
     {
         read_impl(dest, count);
     }
@@ -76,6 +76,21 @@ public:
     /// Read n-byte integer (n = 1..4)
     uint32_t read_nint(int n);
 
+    struct SeekLock
+    {
+        InputBuffer*   buf;
+        std::streampos orig_pos;
+
+        SeekLock(InputBuffer& buf, std::streampos orig_pos);
+        SeekLock(SeekLock const&) = delete;
+        SeekLock(SeekLock&&);
+        SeekLock& operator=(SeekLock const&) = delete;
+        SeekLock& operator=(SeekLock&&);
+        ~SeekLock();
+    };
+
+    SeekLock seek_lock(std::streampos pos);
+
     /// Set current offset from the beginning
     /// returns original position
     std::streampos seek(std::streampos pos);
@@ -90,7 +105,7 @@ public:
     std::streampos tell() const;
 
     /// Size of the buffer for only string-backed buffers
-    size_t size() const;
+    std::size_t size() const;
 };
 
 class OutputBuffer : public InputBuffer
@@ -106,7 +121,7 @@ public:
 
     /// Write bytes starting from the current postion
     /// of the buffer
-    template <typename T> void write(T const* ptr, size_t count)
+    template <typename T> void write(T const* ptr, std::size_t count)
     {
         char bytes[sizeof(T)];
         for (auto i = 0u; i < count; ++i)
@@ -127,9 +142,8 @@ public:
     /// Convenience function for writing 1 item at certain position
     template <typename T> void write_at(std::streampos pos, T t)
     {
-        auto orig_pos = seek(pos);
+        auto lock = seek_lock(pos);
         write(t);
-        seek(orig_pos);
     }
 
     /// Write string

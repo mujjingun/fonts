@@ -11,7 +11,7 @@ class GenericTable : public OTFTable
     std::string data;
 
 public:
-    GenericTable(std::string tag, size_t length);
+    GenericTable(std::string tag, std::size_t length);
     virtual void parse(InputBuffer& dis) override;
     virtual void compile(OutputBuffer& out) const override;
     virtual bool operator==(OTFTable const& rhs) const noexcept override;

@@ -19,7 +19,7 @@ public:
     IndexIterator(IndexIterator const& it) = default;
 
     IndexIterator(
-        size_t count, int off_size, size_t offset_start, InputBuffer& dis);
+        std::size_t count, int off_size, std::size_t offset_start, InputBuffer& dis);
 
     IndexIterator& operator++();
 
@@ -28,15 +28,15 @@ public:
     struct OffsetData
     {
         std::streampos pos;
-        size_t length, index;
+        std::size_t length, index;
     };
 
     OffsetData operator*() const;
 
 private:
-    size_t       index = 0;
-    const size_t off_size = 0, count = 0;
-    const size_t offset_start = 0;
+    std::size_t       index = 0;
+    const std::size_t off_size = 0, count = 0;
+    const std::size_t offset_start = 0;
 
     InputBuffer* dis = nullptr;
 };

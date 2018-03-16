@@ -6,7 +6,7 @@
 namespace geul
 {
 
-HmtxTable::HmtxTable(size_t num_glyphs, size_t num_h_metrics)
+HmtxTable::HmtxTable(std::size_t num_glyphs, std::size_t num_h_metrics)
     : OTFTable(tag)
     , metrics(num_h_metrics)
     , lsbs(num_glyphs - num_h_metrics)

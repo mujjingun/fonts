@@ -4,10 +4,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
+#include <utility>
 
 namespace geul
 {
-
 template <typename T> inline T to_machine_endian(char const* arr)
 {
     static_assert(
@@ -17,7 +17,7 @@ template <typename T> inline T to_machine_endian(char const* arr)
     using DataType = typename std::make_unsigned<T>::type;
 
     DataType ret = 0;
-    for (size_t i = 0; i < sizeof(T); ++i)
+    for (std::size_t i = 0; i < sizeof(T); ++i)
     {
         ret <<= 8;
         ret |= arr[i] & 0xff;
@@ -38,13 +38,14 @@ template <typename T> void to_big_endian(char* arr, T val)
 
     int      shift = (sizeof(T) - 1) * 8;
     DataType mask = DataType(0xff) << shift;
-    for (size_t i = 0; i < sizeof(T); ++i)
+    for (std::size_t i = 0; i < sizeof(T); ++i)
     {
         arr[i] = (t & mask) >> shift;
         shift -= 8;
         mask >>= 8;
     }
 }
+
 }
 
 #endif

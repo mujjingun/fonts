@@ -1,18 +1,23 @@
 
+#include <algorithm>
 #include <chrono>
 #include <fstream>
 #include <gtest/gtest.h>
-#include <pugixml.hpp>
 
-#include "fontutils/otfparser.hpp"
 #include "fontutils/cffutils.hpp"
 #include "fontutils/endian.hpp"
+#include "fontutils/otfparser.hpp"
 
 int main(int argc, char* argv[])
 {
     ::testing::InitGoogleTest(&argc, argv);
 
     return RUN_ALL_TESTS();
+}
+
+TEST(geul, empty_font)
+{
+    EXPECT_ANY_THROW(geul::write_otf(geul::Font(), "out.otf"));
 }
 
 TEST(geul, to_big_endian_convert)
@@ -59,25 +64,25 @@ TEST(geul, to_big_endian_convert)
 TEST(geul, to_machine_endian_convert)
 {
     {
-        char arr[] = {0x12, 0x34, 0x56, 0x78};
+        char arr[] = { 0x12, 0x34, 0x56, 0x78 };
         auto val = geul::to_machine_endian<uint32_t>(arr);
         EXPECT_EQ(val, 0x12345678);
     }
 
     {
-        char arr[] = {0x12, 0x34, 0x56, 0x78};
+        char arr[] = { 0x12, 0x34, 0x56, 0x78 };
         auto val = geul::to_machine_endian<int32_t>(arr);
         EXPECT_EQ(val, 0x12345678);
     }
 
     {
-        char arr[] = {0x12, 0x34};
+        char arr[] = { 0x12, 0x34 };
         auto val = geul::to_machine_endian<int16_t>(arr);
         EXPECT_EQ(val, 0x1234);
     }
 
     {
-        char arr[] = {0x12, 0x34, 0x56, 0x78, 0x44, 0x65, 0x43, 0x21};
+        char arr[] = { 0x12, 0x34, 0x56, 0x78, 0x44, 0x65, 0x43, 0x21 };
         auto val = geul::to_machine_endian<int64_t>(arr);
         EXPECT_EQ(val, 0x1234567844654321);
     }
@@ -152,7 +157,7 @@ TEST(open_file, ttx)
 
     std::cout << "Before: \n";
     for (auto item : body) {
-        size_t n = std::distance(item.begin(), item.end());
+        std::size_t n = std::distance(item.begin(), item.end());
         std::cout << item.name() << ": " << n << '\n';
     }
 
@@ -203,7 +208,7 @@ TEST(open_file, ttx)
     std::cout << "\n";
     std::cout << "After: \n";
     for (auto item : body) {
-        size_t n = std::distance(item.begin(), item.end());
+        std::size_t n = std::distance(item.begin(), item.end());
         std::cout << item.name() << ": " << n << '\n';
     }
 

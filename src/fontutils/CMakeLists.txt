@@ -22,6 +22,9 @@ set(UTILS_SOURCE_FILES
     tables/os2table.cpp
     tables/posttable.cpp
     tables/cfftable.cpp
+    tables/basetable.cpp
+    tables/vheatable.cpp
+    tables/vmtxtable.cpp
     )
 add_library(${PROJECT_NAME}utils STATIC ${UTILS_SOURCE_FILES})
 target_link_libraries(${PROJECT_NAME}utils PRIVATE)

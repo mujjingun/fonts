@@ -23,7 +23,7 @@ public:
     std::vector<int16_t> lsbs;
 
 public:
-    HmtxTable(size_t num_glyphs, size_t num_h_metrics);
+    HmtxTable(std::size_t num_glyphs, std::size_t num_h_metrics);
     virtual void parse(InputBuffer& dis) override;
     virtual void compile(OutputBuffer& out) const override;
     virtual bool operator==(OTFTable const& rhs) const noexcept override;

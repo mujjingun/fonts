@@ -27,10 +27,26 @@ target_link_libraries(${PROJECT_NAME}_test
     ${GTEST_BOTH_LIBRARIES})
 
 set_target_properties(${PROJECT_NAME}_test PROPERTIES
-    COMPILE_FLAGS "-Wall -Wextra -pedantic"
+    COMPILE_FLAGS "-Wall -Wextra -pedantic -fsanitize=address"
+    LINK_FLAGS "-static-libasan -static-libstdc++ -fsanitize=address"
     CXX_STANDARD 14
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF)
 
 # ctest
 add_test(${PROJECT_NAME}_cmake_test ${PROJECT_NAME}_test)
+
+################## Fuzzer ####################
+set(ENV{AFL_USE_ASAN} 1)
+add_executable(${PROJECT_NAME}_fuzzer fuzzer.cpp)
+target_link_libraries(${PROJECT_NAME}_fuzzer
+    ${PROJECT_NAME}utils)
+
+target_include_directories(${PROJECT_NAME}_fuzzer
+    PUBLIC
+    ${PROJECT_SOURCE_DIR}/src)
+
+set_target_properties(${PROJECT_NAME}_fuzzer PROPERTIES
+    CXX_STANDARD 14
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF)

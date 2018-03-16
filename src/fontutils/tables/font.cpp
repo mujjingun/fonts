@@ -1,5 +1,6 @@
 #include "font.hpp"
 
+#include "basetable.hpp"
 #include "cfftable.hpp"
 #include "cmaptable.hpp"
 #include "generictable.hpp"
@@ -10,6 +11,8 @@
 #include "nametable.hpp"
 #include "os2table.hpp"
 #include "posttable.hpp"
+#include "vheatable.hpp"
+#include "vmtxtable.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -27,36 +30,39 @@ Font::Font()
 
 namespace
 {
-    // Factory method for making tables
-    std::unique_ptr<OTFTable>
-    make_table(std::string name, InputBuffer& dis, size_t offset, size_t length)
-    {
-        std::unique_ptr<OTFTable> table;
-        if (name == "cmap")
-            table = std::make_unique<CmapTable>();
-        else if (name == "name")
-            table = std::make_unique<NameTable>();
-        else if (name == "OS/2")
-            table = std::make_unique<OS2Table>();
-        else if (name == "post")
-            table = std::make_unique<PostTable>();
-        else if (name == "CFF ")
-            table = std::make_unique<CFFTable>();
-        else if (name == "head")
-            table = std::make_unique<HeadTable>();
-        else if (name == "maxp")
-            table = std::make_unique<MaxpTable>();
-        else if (name == "hhea")
-            table = std::make_unique<HheaTable>();
-        else
-            table = std::make_unique<GenericTable>(name, length);
+// Factory method for making tables
+std::unique_ptr<OTFTable> make_table(
+    std::string name, InputBuffer& dis, std::size_t offset, std::size_t length)
+{
+    std::unique_ptr<OTFTable> table;
+    if (name == "cmap")
+        table = std::make_unique<CmapTable>();
+    else if (name == "name")
+        table = std::make_unique<NameTable>();
+    else if (name == "OS/2")
+        table = std::make_unique<OS2Table>();
+    else if (name == "post")
+        table = std::make_unique<PostTable>();
+    else if (name == "CFF ")
+        table = std::make_unique<CFFTable>();
+    else if (name == "head")
+        table = std::make_unique<HeadTable>();
+    else if (name == "maxp")
+        table = std::make_unique<MaxpTable>();
+    else if (name == "hhea")
+        table = std::make_unique<HheaTable>();
+    else if (name == "BASE")
+        table = std::make_unique<BaseTable>();
+    else if (name == "vhea")
+        table = std::make_unique<VheaTable>();
+    else
+        table = std::make_unique<GenericTable>(name, length);
 
-        auto orig_pos = dis.seek(offset);
-        table->parse(dis);
-        dis.seek(orig_pos);
+    auto lock = dis.seek_lock(offset);
+    table->parse(dis);
 
-        return table;
-    }
+    return table;
+}
 }
 
 void Font::parse(InputBuffer& dis)
@@ -77,26 +83,25 @@ void Font::parse(InputBuffer& dis)
 
     struct TableInfo
     {
-        size_t offset;
-        size_t length;
+        std::size_t offset;
+        std::size_t length;
     };
     std::map<std::string, TableInfo> tables_pos;
     uint32_t                         entire_checksum = 0;
     uint32_t                         checksum_adjustment = 0;
     for (auto i = 0u; i < num_tables; ++i)
     {
-        Tag         tag;
+        Tag tag;
         dis.read<uint8_t>(tag.data(), 4);
         std::string table_name = std::string(tag.begin(), tag.end());
 
         uint32_t checksum = dis.read<uint32_t>();
 
-        size_t offset = dis.read<uint32_t>();
-        size_t length = dis.read<uint32_t>();
+        std::size_t offset = dis.read<uint32_t>();
+        std::size_t length = dis.read<uint32_t>();
         tables_pos[table_name] = { offset, length };
 
-        auto orig_pos = dis.tell();
-        dis.seek(offset);
+        auto lock = dis.seek_lock(offset);
 
         uint32_t calc_checksum = calculate_checksum(dis, length);
 
@@ -119,7 +124,6 @@ void Font::parse(InputBuffer& dis)
             oss << "Calculated : " << calc_checksum;
             throw std::runtime_error(oss.str());
         }
-        dis.seek(orig_pos);
     }
 
     const char* required_tables[] = {
@@ -151,18 +155,34 @@ void Font::parse(InputBuffer& dis)
     {
         std::string const& tag = table.first;
         TableInfo const&   info = table.second;
+
+        if (tag == "hmtx" || tag == "vmtx")
+            continue;
+
         tables[tag] = make_table(tag, dis, info.offset, info.length);
     }
 
-    // Parse remaining tables
-    dis.seek(tables_pos["hmtx"].offset);
-    tables_pos.erase(tables_pos.find("hmtx"));
+    // Parse remaining tables : 'hmtx' and 'vmtx'
+    auto const num_glyphs
+        = dynamic_cast<MaxpTable&>(*tables["maxp"]).num_glyphs;
+    {
+        auto lock = dis.seek_lock(tables_pos["hmtx"].offset);
+        auto hmtx = std::make_unique<HmtxTable>(
+            num_glyphs,
+            dynamic_cast<HheaTable&>(*tables["hhea"]).num_h_metrics);
+        hmtx->parse(dis);
+        tables["hmtx"] = std::move(hmtx);
+    }
 
-    auto hmtx = std::make_unique<HmtxTable>(
-        dynamic_cast<MaxpTable&>(*tables["maxp"]).num_glyphs,
-        dynamic_cast<HheaTable&>(*tables["hhea"]).num_h_metrics);
-    hmtx->parse(dis);
-    tables["hmtx"] = std::move(hmtx);
+    if (tables_pos.count("vmtx"))
+    {
+        auto lock = dis.seek_lock(tables_pos["vmtx"].offset);
+        auto vmtx = std::make_unique<VmtxTable>(
+            num_glyphs,
+            dynamic_cast<VheaTable&>(*tables["vhea"]).num_long_ver_metrics);
+        vmtx->parse(dis);
+        tables["vmtx"] = std::move(vmtx);
+    }
 }
 
 void Font::compile(OutputBuffer& out) const
@@ -229,11 +249,12 @@ void Font::compile(OutputBuffer& out) const
         entire_checksum += checksum;
 
         // write checksum, offset, and length value
-        auto orig_pos = out.seek(checksums[idx]);
-        out.write<uint32_t>(checksum);
-        out.write<uint32_t>(table_begin - beginning);
-        out.write<uint32_t>(length);
-        out.seek(orig_pos);
+        {
+            auto lock = out.seek_lock(checksums[idx]);
+            out.write<uint32_t>(checksum);
+            out.write<uint32_t>(table_begin - beginning);
+            out.write<uint32_t>(length);
+        }
 
         idx++;
     }
@@ -243,13 +264,13 @@ void Font::compile(OutputBuffer& out) const
         throw std::runtime_error("'head' table not present");
 
     // set checksumAdjustment value
-    out.seek(beginning);
-    entire_checksum += calculate_checksum(out, offset_table_size);
-    out.seek(checksum_adj_pos);
-    uint32_t checksum_adj = uint32_t(0xB1B0AFBA) - entire_checksum;
-    out.write<uint32_t>(checksum_adj);
-
-    out.seek_end();
+    {
+        auto lock = out.seek_lock(beginning);
+        entire_checksum += calculate_checksum(out, offset_table_size);
+        out.seek(checksum_adj_pos);
+        uint32_t checksum_adj = uint32_t(0xB1B0AFBA) - entire_checksum;
+        out.write<uint32_t>(checksum_adj);
+    }
 }
 
 bool Font::operator==(OTFTable const& rhs) const noexcept
@@ -278,7 +299,6 @@ Glyph& Font::glyph(char32_t ch)
 {
     auto& cmap = dynamic_cast<CmapTable&>(*tables["cmap"]);
     auto& cff = dynamic_cast<CFFTable&>(*tables["CFF "]);
-    // TODO
-    return cff.fonts[0].glyphs[0];
+    return cff.fonts[0].glyphs.at(cmap.gid(ch));
 }
 }

@@ -34,7 +34,6 @@ QOpenGLFramebufferObject *
 JamoViewRenderer::createFramebufferObject(const QSize &size)
 {
     QOpenGLFramebufferObjectFormat format;
-    format.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
     format.setSamples(4);
 
     QTransform m_screen_to_GL;
@@ -61,22 +60,6 @@ void main() {
     vec3 p = vec3(vertices.x, vertices.y, 1) * u_transform;
     gl_Position = vec4(p, 1);
     gl_PointSize = u_pointsize;
-}
-
-)GLSL";
-
-static const char geometry_shader_source[] =
-R"GLSL(
-
-#version 120
-#extension GL_ARB_geometry_shader4 : enable
-
-void main() {
-    int i;
-    for(i = 0; i < gl_VerticesIn; ++i) {
-        gl_Position = gl_PositionIn[i];
-        EmitVertex();
-    }
 }
 
 )GLSL";
@@ -184,10 +167,15 @@ void JamoViewRenderer::rebuild(QOpenGLFunctions *f)
     m_dirty = false;
 }
 
-static QOpenGLShaderProgram *get_program(int *u_color, int *u_pointsize, int *u_transform)
+struct UniformLocations
+{
+    int color, pointsize, transform;
+};
+
+static QOpenGLShaderProgram *get_program(UniformLocations *locs)
 {
     static QOpenGLShaderProgram *program = nullptr;
-    static int loc_color, loc_pointsize, loc_transform;
+    static UniformLocations cache;
     if (!program) {
         program = new QOpenGLShaderProgram();
         program->addCacheableShaderFromSourceCode(QOpenGLShader::Vertex, vertex_shader_source);
@@ -197,14 +185,14 @@ static QOpenGLShaderProgram *get_program(int *u_color, int *u_pointsize, int *u_
         program->bindAttributeLocation("vertices", 0);
         program->link();
 
-        loc_color = program->uniformLocation("u_color");
-        loc_pointsize = program->uniformLocation("u_pointsize");
-        loc_transform = program->uniformLocation("u_transform");
+        cache.color = program->uniformLocation("u_color");
+        cache.pointsize = program->uniformLocation("u_pointsize");
+        cache.transform = program->uniformLocation("u_transform");
     }
 
-    *u_color = loc_color;
-    *u_pointsize = loc_pointsize;
-    *u_transform = loc_transform;
+    locs->color = cache.color;
+    locs->pointsize = cache.pointsize;
+    locs->transform = cache.transform;
 
     return program;
 }
@@ -243,60 +231,62 @@ void JamoViewRenderer::unpressed(int x, int y)
 
 void JamoViewRenderer::render()
 {
-    //if (m_editable) qDebug() << "render";
     QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
-
-    int loc_color, loc_pointsize, loc_transform;
-    QOpenGLShaderProgram *program = get_program(&loc_color, &loc_pointsize, &loc_transform);
 
     if (m_dirty) rebuild(f);
 
+    UniformLocations locs;
+    QOpenGLShaderProgram *program = get_program(&locs);
+
     program->bind();
-    program->setUniformValue(loc_transform, m_DU_to_GL);
+    program->setUniformValue(locs.transform, m_DU_to_GL);
 
     f->glDisable(GL_DEPTH_TEST);
-    f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    f->glClearColor(1, 1, 1, 0);
-
-    m_outlineVAO.bind();
-    program->setUniformValue(loc_color, QVector3D(1, 1, 1));
     f->glEnable(GL_BLEND);
-    f->glBlendEquationSeparate(GL_FUNC_SUBTRACT, GL_FUNC_ADD);
-    f->glBlendFuncSeparate(GL_ONE, GL_ONE, GL_ONE, GL_ZERO);
+    f->glClearColor(0, 0, 0, 0);
+    f->glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    f->glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_SUBTRACT);
+    f->glBlendFuncSeparate(GL_ONE, GL_ONE, GL_ONE, GL_ONE);
+
+    // draw shapes
+    m_outlineVAO.bind();
+    program->setUniformValue(locs.color, QVector3D(0, 0, 0));
     f->glDrawElements(GL_TRIANGLES, m_indices.count(), GL_UNSIGNED_INT, m_indices.constData());
     m_outlineVAO.release();
 
     f->glBlendEquation(GL_FUNC_ADD);
     f->glBlendFunc(GL_ONE, GL_ZERO);
 
+    // draw grid
     m_gridVAO.bind();
-    program->setUniformValue(loc_color, QVector3D(0, 0, 0));
+    program->setUniformValue(locs.color, QVector3D(0, 0, 0));
     f->glDrawElements(GL_LINES, m_grid_indices.count(), GL_UNSIGNED_INT, m_grid_indices.constData());
     m_gridVAO.release();
 
+    // draw points
     if (m_editable) {
         f->glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
         m_outlineVAO.bind();
-        program->setUniformValue(loc_color, QVector3D(0.2, 1, 0.2));
-        program->setUniformValue(loc_pointsize, 5.f);
+        program->setUniformValue(locs.color, QVector3D(0.2, 1, 0.2));
+        program->setUniformValue(locs.pointsize, 5.f);
         f->glDrawElements(GL_POINTS, m_point_indices.count(), GL_UNSIGNED_INT, m_point_indices.constData());
 
         if (m_hover_point_idx >= 0) {
-            program->setUniformValue(loc_color, QVector3D(1, 0.2, 0.2));
-            program->setUniformValue(loc_pointsize, 10.f);
+            program->setUniformValue(locs.color, QVector3D(1, 0.2, 0.2));
+            program->setUniformValue(locs.pointsize, 10.f);
             f->glDrawElements(GL_POINTS, 1, GL_UNSIGNED_INT, &m_hover_point_idx);
         }
 
         if (m_selected_point_idx >= 0) {
-            program->setUniformValue(loc_color, QVector3D(1, 0.2, 1));
-            program->setUniformValue(loc_pointsize, 7.f);
+            program->setUniformValue(locs.color, QVector3D(1, 0.2, 1));
+            program->setUniformValue(locs.pointsize, 7.f);
             f->glDrawElements(GL_POINTS, 1, GL_UNSIGNED_INT, &m_selected_point_idx);
         }
         m_outlineVAO.release();
     }
 
     program->release();
-
     m_view->window()->resetOpenGLState();
 }
 

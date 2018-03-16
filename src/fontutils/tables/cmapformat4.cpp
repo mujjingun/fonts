@@ -55,7 +55,7 @@ void CmapFormat4Subtable::parse(InputBuffer& dis)
 
     // idRangeOffset
     std::vector<uint16_t> id_range_offset(seg_count);
-    std::vector<size_t>   range_offset_start(seg_count);
+    std::vector<std::size_t>   range_offset_start(seg_count);
     for (int i = 0; i < seg_count; ++i)
     {
         range_offset_start[i] = dis.tell();
@@ -63,7 +63,7 @@ void CmapFormat4Subtable::parse(InputBuffer& dis)
     }
 
     // glyphIdArray
-    size_t                gid_len = (length - 16 - 8 * seg_count) / 2;
+    std::size_t                gid_len = (length - 16 - 8 * seg_count) / 2;
     std::vector<uint16_t> gid_array(gid_len);
     dis.read<uint16_t>(gid_array.data(), gid_len);
 
@@ -83,7 +83,7 @@ void CmapFormat4Subtable::parse(InputBuffer& dis)
             }
             else
             {
-                size_t id = (i - seg_count) + id_range_offset[i] / 2 + j;
+                std::size_t id = (i - seg_count) + id_range_offset[i] / 2 + j;
                 if (id >= gid_len)
                     throw std::runtime_error("id out of glyph id array bounds");
 
@@ -182,7 +182,7 @@ void CmapFormat4Subtable::compile(OutputBuffer& out) const
             seg.id_range_offset += seg_list.size() * 2;
     }
 
-    size_t length = 16 + 8 * seg_list.size() + 2 * gid_array.size();
+    std::size_t length = 16 + 8 * seg_list.size() + 2 * gid_array.size();
 
     if (length >= 65535)
         throw std::runtime_error("subtable too long");

@@ -30,7 +30,7 @@ IndexView parse_index(InputBuffer& dis)
 }
 
 IndexIterator::IndexIterator(
-    size_t count, int off_size, size_t offset_start, InputBuffer& dis)
+    std::size_t count, int off_size, std::size_t offset_start, InputBuffer& dis)
     : off_size(off_size)
     , count(count)
     , offset_start(offset_start)
@@ -55,14 +55,12 @@ IndexIterator::OffsetData IndexIterator::operator*() const
     if (!dis)
         throw std::runtime_error("attempt to dereference an end iterator");
 
-    size_t cur = offset_start + off_size * (index - count - 1) + 1;
-    auto   orig_pos = dis->seek(cur);
+    std::size_t cur = offset_start + off_size * (index - count - 1) + 1;
+    auto   lock = dis->seek_lock(cur);
 
     auto offset = dis->read_nint(off_size);
     auto length = dis->read_nint(off_size) - offset;
     offset += offset_start;
-
-    dis->seek(orig_pos);
 
     return { offset, length, index };
 }
@@ -211,14 +209,14 @@ CFFToken next_token(InputBuffer& dis)
     }
 }
 
-void write_index(
-    OutputBuffer& out, int size, std::function<void(int)> cb)
+void write_index(OutputBuffer& out, int size, std::function<void(int)> cb)
 {
     auto beginning = out.tell();
 
     out.write<uint16_t>(size);
 
-    if (size == 0) return;
+    if (size == 0)
+        return;
 
     out.write<uint8_t>(4);
 
@@ -227,13 +225,14 @@ void write_index(
     out.write<uint32_t>(offset);
     for (int i = 0; i < size; ++i)
     {
-        auto begin = offset_start + offset;
-        auto orig_pos = out.seek(begin);
-        cb(i);
-        auto len = out.tell() - begin;
-        offset += len;
+        {
+            auto begin = offset_start + offset;
+            auto lock = out.seek_lock(begin);
+            cb(i);
+            auto len = out.tell() - begin;
+            offset += len;
+        }
 
-        out.seek(orig_pos);
         out.write<uint32_t>(offset);
     }
 

@@ -32,7 +32,7 @@ void CmapFormat14Subtable::parse(InputBuffer& dis)
         std::streamoff default_uvs_offset = dis.read<uint32_t>();
         if (default_uvs_offset > 0)
         {
-            auto orig_pos = dis.seek(beginning + default_uvs_offset);
+            auto lock = dis.seek_lock(beginning + default_uvs_offset);
             auto num_ranges = dis.read<uint32_t>();
             for (auto i = 0u; i < num_ranges; ++i)
             {
@@ -40,13 +40,12 @@ void CmapFormat14Subtable::parse(InputBuffer& dis)
                 int      count = dis.read<uint8_t>() + 1;
                 uvs.dflt.push_back({ start_val, count });
             }
-            dis.seek(orig_pos);
         }
 
         std::streamoff special_uvs_offset = dis.read<uint32_t>();
         if (special_uvs_offset > 0)
         {
-            auto orig_pos = dis.seek(beginning + special_uvs_offset);
+            auto lock = dis.seek_lock(beginning + special_uvs_offset);
             auto num_uvs_mappings = dis.read<uint32_t>();
             for (auto i = 0u; i < num_uvs_mappings; ++i)
             {
@@ -54,7 +53,6 @@ void CmapFormat14Subtable::parse(InputBuffer& dis)
                 auto     gid = dis.read<uint16_t>();
                 uvs.special.push_back({ unicode_value, gid });
             }
-            dis.seek(orig_pos);
         }
 
         map.emplace(var_selector, uvs);
@@ -95,8 +93,8 @@ void CmapFormat14Subtable::compile(OutputBuffer& out) const
     {
         char32_t   ch = selector.first;
         UVS const& uvs = selector.second;
-        size_t     dflt_size = uvs.dflt.size();
-        size_t     special_size = uvs.special.size();
+        std::size_t     dflt_size = uvs.dflt.size();
+        std::size_t     special_size = uvs.special.size();
 
         if (dflt_size > 0)
         {

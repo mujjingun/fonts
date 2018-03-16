@@ -51,6 +51,11 @@ uint32_t InputBuffer::read_nint(int n)
     return ret;
 }
 
+InputBuffer::SeekLock InputBuffer::seek_lock(std::streampos pos)
+{
+    return SeekLock(*this, seek(pos));
+}
+
 std::streampos InputBuffer::seek(std::streampos pos)
 {
     auto orig_pos = tell();
@@ -83,7 +88,7 @@ std::streampos InputBuffer::tell() const
     return pos;
 }
 
-size_t InputBuffer::size() const
+std::size_t InputBuffer::size() const
 {
     auto orig_pos = tell();
     auto begin = buf->pubseekoff(0, std::ios::beg, mode);
@@ -100,7 +105,8 @@ OutputBuffer OutputBuffer::open(std::string filename)
     output_buf.mode = std::ios::in | std::ios::out;
 
     auto buf = std::make_unique<std::filebuf>();
-    if (!buf->open(filename, output_buf.mode | std::ios::binary | std::ios::trunc))
+    if (!buf->open(
+            filename, output_buf.mode | std::ios::binary | std::ios::trunc))
         throw std::runtime_error("Cannot open file");
     output_buf.buf = std::move(buf);
 
@@ -113,7 +119,7 @@ OutputBuffer::OutputBuffer(std::string&& data)
     buf = std::make_unique<std::stringbuf>(data, mode | std::ios::binary);
 }
 
-void OutputBuffer::write_string(const std::string &str)
+void OutputBuffer::write_string(const std::string& str)
 {
     write<char>(str.data(), str.size());
 }
@@ -158,4 +164,29 @@ void OutputBuffer::pad()
     seek(orig_pos);
 }
 
+InputBuffer::SeekLock::SeekLock(InputBuffer& buf, std::streampos orig_pos)
+    : buf(&buf)
+    , orig_pos(orig_pos)
+{}
+
+InputBuffer::SeekLock::SeekLock(InputBuffer::SeekLock&& other)
+{
+    *this = std::move(other);
+}
+
+InputBuffer::SeekLock& InputBuffer::SeekLock::
+                       operator=(InputBuffer::SeekLock&& other)
+{
+    buf = std::exchange(other.buf, nullptr);
+    orig_pos = other.orig_pos;
+    return *this;
+}
+
+InputBuffer::SeekLock::~SeekLock()
+{
+    if (buf)
+    {
+        buf->seek(orig_pos);
+    }
+}
 }

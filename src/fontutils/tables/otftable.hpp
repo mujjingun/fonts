@@ -37,7 +37,7 @@ private:
     std::string id_;
 };
 
-uint32_t calculate_checksum(InputBuffer& dis, size_t length);
+uint32_t calculate_checksum(InputBuffer& dis, std::size_t length);
 
 /// Biggest power-of-2 less than or equal to num
 int le_pow2(int num);

@@ -16,50 +16,43 @@ CmapTable::CmapTable()
 
 namespace
 {
-    /// Factory function to make cmap subtables
-    std::unique_ptr<CmapSubtable> make_subtable(
-        InputBuffer&   dis,
-        std::streampos pos,
-        uint16_t       platform_id,
-        uint16_t       encoding_id)
+/// Factory function to make cmap subtables
+std::unique_ptr<CmapSubtable> make_subtable(
+    InputBuffer&   dis,
+    std::streampos pos,
+    uint16_t       platform_id,
+    uint16_t       encoding_id)
+{
+    auto lock = dis.seek_lock(pos);
+    auto format = dis.peek<uint16_t>();
+
+    std::unique_ptr<CmapSubtable> table;
+    if (format == 4)
     {
-        auto orig_pos = dis.seek(pos);
-        auto format = dis.peek<uint16_t>();
-
-        std::unique_ptr<CmapSubtable> table;
-        if (format == 4)
-        {
-            table = std::make_unique<CmapFormat4Subtable>(
-                platform_id, encoding_id);
-        }
-        else if (format == 12)
-        {
-            table = std::make_unique<CmapFormat12Subtable>(
-                platform_id, encoding_id);
-        }
-        else if (format == 14)
-        {
-            table = std::make_unique<CmapFormat14Subtable>(
-                platform_id, encoding_id);
-        }
-        else
-        {
-            // return to original position
-            dis.seek(orig_pos);
-
-            std::cerr << "Unsupported cmap subtable format " << format << ".";
-
-            return nullptr;
-        }
-
-        // parse subtable
-        table->parse(dis);
-
-        // return to original position
-        dis.seek(orig_pos);
-
-        return table;
+        table = std::make_unique<CmapFormat4Subtable>(platform_id, encoding_id);
     }
+    else if (format == 12)
+    {
+        table
+            = std::make_unique<CmapFormat12Subtable>(platform_id, encoding_id);
+    }
+    else if (format == 14)
+    {
+        table
+            = std::make_unique<CmapFormat14Subtable>(platform_id, encoding_id);
+    }
+    else
+    {
+        std::cerr << "Unsupported cmap subtable format " << format << "."
+                  << std::endl;
+        return nullptr;
+    }
+
+    // parse subtable
+    table->parse(dis);
+
+    return table;
+}
 }
 
 void CmapTable::parse(InputBuffer& dis)
@@ -115,10 +108,11 @@ void CmapTable::compile(OutputBuffer& out) const
     for (auto const& sub : subtables)
     {
         // write offset
-        auto offset = out.tell() - beginning;
-        auto orig_pos = out.seek(offsets[idx]);
-        out.write<uint32_t>(offset);
-        out.seek(orig_pos);
+        {
+            auto offset = out.tell() - beginning;
+            auto lock = out.seek_lock(offsets[idx]);
+            out.write<uint32_t>(offset);
+        }
 
         // write table
         sub->compile(out);
@@ -142,5 +136,23 @@ bool CmapTable::operator==(OTFTable const& rhs) const noexcept
     }
 
     return true;
+}
+
+uint32_t CmapTable::gid(char32_t utf32) const
+{
+    for (auto const& table : subtables)
+    {
+        if (table && table->platform_id == 0 && table->encoding_id == 4)
+        {
+            auto fmt12 = dynamic_cast<CmapFormat12Subtable const*>(table.get());
+
+            // Found utf32 mapping table
+            if (fmt12)
+            {
+                return fmt12->cmap.at(utf32);
+            }
+        }
+    }
+    throw std::runtime_error("No Unicode Format 12 table found.");
 }
 }

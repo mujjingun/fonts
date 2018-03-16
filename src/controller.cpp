@@ -65,6 +65,19 @@ void Controller::fileLoadFinished()
 
     loaded_font = std::move(*ptr);
     cons_model->setGlyph(JamoName::KIYEOK, loaded_font.glyph(char32_t(0x3131)));
+    cons_model->setGlyph(JamoName::NIEUN, loaded_font.glyph(char32_t(0x3132)));
+    cons_model->setGlyph(JamoName::TIKEUT, loaded_font.glyph(char32_t(0x3133)));
+    cons_model->setGlyph(JamoName::RIEUL, loaded_font.glyph(char32_t(0x3134)));
+    cons_model->setGlyph(JamoName::MIEUM, loaded_font.glyph(char32_t(0x3135)));
+    cons_model->setGlyph(JamoName::PIEUP, loaded_font.glyph(char32_t(0x3136)));
+    cons_model->setGlyph(JamoName::SIOS, loaded_font.glyph(char32_t(0x3137)));
+    cons_model->setGlyph(JamoName::IEUNG, loaded_font.glyph(char32_t(0x3138)));
+    cons_model->setGlyph(JamoName::CIEUC, loaded_font.glyph(char32_t(0x3139)));
+    cons_model->setGlyph(JamoName::CHIEUCH, loaded_font.glyph(char32_t(0x3140)));
+    cons_model->setGlyph(JamoName::KHIEUHK, loaded_font.glyph(char32_t(0x3141)));
+    cons_model->setGlyph(JamoName::THIEUTH, loaded_font.glyph(char32_t(0x3142)));
+    cons_model->setGlyph(JamoName::PHIEUPH, loaded_font.glyph(char32_t(0x3143)));
+    cons_model->setGlyph(JamoName::HEIUH, loaded_font.glyph(char32_t(0x3144)));
 
     qDebug() << "Font load finished.";
 }

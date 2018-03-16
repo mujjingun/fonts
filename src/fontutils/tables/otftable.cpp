@@ -14,7 +14,7 @@ std::string OTFTable::id() const
     return id_;
 }
 
-uint32_t calculate_checksum(InputBuffer& dis, size_t length)
+uint32_t calculate_checksum(InputBuffer& dis, std::size_t length)
 {
     uint32_t checksum = 0;
     uint32_t l;
